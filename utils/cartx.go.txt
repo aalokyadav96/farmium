@@ -1,0 +1,43 @@
+package utils
+
+import "naevis/models"
+
+func MergeCarts(existing, incoming models.CartData) models.CartData {
+	return models.CartData{
+		Crops:       mergeItems(existing.Crops, incoming.Crops, true),
+		Merchandise: mergeItems(existing.Merchandise, incoming.Merchandise, false),
+		Tickets:     mergeItems(existing.Tickets, incoming.Tickets, false),
+		Menu:        mergeItems(existing.Menu, incoming.Menu, false),
+	}
+}
+
+func mergeItems(existing, incoming []models.CartItem, isCrop bool) []models.CartItem {
+	mergedMap := make(map[string]models.CartItem)
+
+	for _, item := range existing {
+		key := item.Item
+		if isCrop {
+			key += "__" + item.Farm
+		}
+		mergedMap[key] = item
+	}
+
+	for _, item := range incoming {
+		key := item.Item
+		if isCrop {
+			key += "__" + item.Farm
+		}
+		if existingItem, ok := mergedMap[key]; ok {
+			existingItem.Quantity += item.Quantity
+			mergedMap[key] = existingItem
+		} else {
+			mergedMap[key] = item
+		}
+	}
+
+	merged := make([]models.CartItem, 0, len(mergedMap))
+	for _, item := range mergedMap {
+		merged = append(merged, item)
+	}
+	return merged
+}

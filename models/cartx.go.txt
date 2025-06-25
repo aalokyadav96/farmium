@@ -1,0 +1,40 @@
+package models
+
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type CartItem struct {
+	// UserID   string  `json:"userId" bson:"userId"` // Optional: for per-user cart
+	Category string  `json:"category" bson:"category"`
+	Item     string  `json:"item" bson:"item"`
+	Unit     string  `json:"unit,omitempty" bson:"unit,omitempty"`
+	Farm     string  `json:"farm,omitempty" bson:"farm,omitempty"`
+	Quantity int     `json:"quantity" bson:"quantity"`
+	Price    float64 `json:"price" bson:"price"`
+}
+
+type CartData struct {
+	UserID      string     `bson:"userId,omitempty"`
+	Crops       []CartItem `json:"crops" bson:"crops"`
+	Merchandise []CartItem `json:"merchandise" bson:"merchandise"`
+	Tickets     []CartItem `json:"tickets" bson:"tickets"`
+	Menu        []CartItem `json:"menu" bson:"menu"`
+}
+type Cart struct {
+	UserID      primitive.ObjectID `bson:"userId"`
+	Crops       []CartItem         `bson:"crops"`
+	Merchandise []CartItem         `bson:"merchandise"`
+	Tickets     []CartItem         `bson:"tickets"`
+	Menu        []CartItem         `bson:"menu"`
+	UpdatedAt   time.Time          `bson:"updatedAt"`
+}
+type CartItemPayload struct {
+	Category string  `json:"category"`
+	Item     string  `json:"item"`
+	Farm     string  `json:"farm,omitempty"`
+	Quantity int     `json:"quantity"`
+	Price    float64 `json:"price"`
+}

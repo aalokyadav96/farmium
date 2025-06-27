@@ -8,27 +8,29 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// GetFarmHomeContent handles all of the dashboard endpoints under /home/:apiRoute
+// func GetFarmHomeContent(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetHomeContent(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	apiRoute := strings.ToLower(ps.ByName("apiRoute"))
 
-	var data interface{}
-	var err error
+	var (
+		data interface{}
+		err  error
+	)
 
 	switch apiRoute {
-	case "news":
-		data, err = getNews()
-	case "trends":
-		data, err = getTrends()
-	case "events":
-		data, err = getEvents()
-	case "places":
-		data, err = getPlaces()
-	case "posts":
-		data, err = getCommunityPosts()
-	case "media":
-		data, err = getMedia()
-	case "notices":
-		data, err = getNotices()
+	case "farms":
+		data, err = getTopFarms()
+	case "categories":
+		data, err = getFarmCategories()
+	case "offers":
+		data, err = getSpecialOffers()
+	case "blogs":
+		data, err = getBlogPosts()
+	case "seasonal-tips":
+		data, err = getSeasonalTips()
+	case "locations":
+		data, err = getFarmLocations()
 	default:
 		http.Error(w, "Invalid API route", http.StatusNotFound)
 		return
@@ -42,48 +44,65 @@ func GetHomeContent(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
 }
-func getNews() ([]map[string]string, error) {
-	return []map[string]string{
-		{"title": "New Event System Launch", "link": "/news/launch"},
-		{"title": "Platform v2.0 Announced", "link": "/news/v2"},
+
+// getTopFarms returns a list of top farms
+func getTopFarms() ([]map[string]interface{}, error) {
+	return []map[string]interface{}{
+		{"id": 201, "name": "Green Valley Farms", "rating": 4.8, "region": "Haryana"},
+		{"id": 202, "name": "Sunrise Orchards", "rating": 4.6, "region": "Punjab"},
+		{"id": 203, "name": "Riverbank Ranch", "rating": 4.7, "region": "Uttar Pradesh"},
 	}, nil
 }
 
-func getTrends() ([]string, error) {
-	return []string{"#Nightlife", "#Foodie", "#LiveMusic", "#Workspaces"}, nil
-}
-
-func getEvents() ([]map[string]string, error) {
-	return []map[string]string{
-		{"title": "Tech Conference 2025", "link": "/events/techconf"},
-		{"title": "DJ Night at Club XO", "link": "/events/djnight"},
+// getFarmCategories returns the categories of farms/products
+func getFarmCategories() ([]string, error) {
+	return []string{
+		"Fruits",
+		"Vegetables",
+		"Dairy",
+		"Grains",
+		"Millets/Pulses",
 	}, nil
 }
 
-func getPlaces() ([]map[string]string, error) {
-	return []map[string]string{
-		{"name": "Cafe Mocha", "link": "/places/cafe-mocha"},
-		{"name": "Studio 88", "link": "/places/studio-88"},
+// getSpecialOffers returns current offers running on the platform
+func getSpecialOffers() ([]map[string]interface{}, error) {
+	return []map[string]interface{}{
+		{
+			"id":     301,
+			"title":  "Buy 5 kg Mangoes, get 1 kg free",
+			"endsAt": "2025-07-15",
+		},
+		{
+			"id":     302,
+			"title":  "20% off on all Dairy products",
+			"endsAt": "2025-06-30",
+		},
 	}, nil
 }
 
-func getCommunityPosts() ([]map[string]string, error) {
+// getBlogPosts returns the latest blog posts
+func getBlogPosts() ([]map[string]string, error) {
 	return []map[string]string{
-		{"title": "Had an amazing time at the festival!", "link": "/posts/festival123"},
-		{"title": "Anyone been to Rooftop Blues?", "link": "/posts/rooftop"},
+		{"title": "Sustainable Farming Practices", "link": "/blogs/sustainable-farming"},
+		{"title": "How to Store Grains Safely", "link": "/blogs/grain-storage"},
 	}, nil
 }
 
-func getMedia() ([]map[string]string, error) {
-	return []map[string]string{
-		{"url": "/media/img1.jpg", "alt": "Concert Crowd"},
-		{"url": "/media/img2.jpg", "alt": "Venue Interior"},
+// getSeasonalTips returns a list of seasonal farming tips
+func getSeasonalTips() ([]string, error) {
+	return []string{
+		"🌾 Time to sow wheat in North India",
+		"🍅 Tomatoes thrive in warm afternoons",
+		"🥬 Use shade nets for spinach during peak sun",
 	}, nil
 }
 
-func getNotices() ([]map[string]string, error) {
+// getFarmLocations returns basic location info for mapping
+func getFarmLocations() ([]map[string]string, error) {
 	return []map[string]string{
-		{"text": "Maintenance on 12th June from 2 AM to 5 AM"},
-		{"text": "New features rolling out next week"},
+		{"name": "Green Valley Farms", "region": "Haryana"},
+		{"name": "Sunrise Orchards", "region": "Punjab"},
+		{"name": "Riverbank Ranch", "region": "Uttar Pradesh"},
 	}, nil
 }

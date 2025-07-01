@@ -99,54 +99,6 @@ type Like struct {
 	CreatedAt  time.Time          `bson:"created_at"`
 }
 
-type Baito struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
-	Title        string             `bson:"title" json:"title"`
-	Description  string             `bson:"description" json:"description"`
-	Category     string             `bson:"category" json:"category"`
-	SubCategory  string             `bson:"subcategory" json:"subcategory"`
-	Location     string             `bson:"location" json:"location"`
-	Wage         string             `bson:"wage" json:"wage"`
-	Phone        string             `bson:"phone" json:"phone"`
-	Requirements string             `bson:"requirements" json:"requirements"`
-	BannerURL    string             `bson:"banner,omitempty" json:"banner,omitempty"`
-	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
-	WorkHours    string             `bson:"workHours" json:"workHours"`
-	Images       []string           `bson:"images" json:"images"`
-}
-type BaitoApplication struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	BaitoID   primitive.ObjectID `bson:"baitoId" json:"baitoId"`
-	Pitch     string             `bson:"pitch" json:"pitch"`
-	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
-}
-
-// type Baito struct {
-// 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
-// 	Title        string             `bson:"title" json:"title"`
-// 	Description  string             `bson:"description" json:"description"`
-// 	Category     string             `bson:"category" json:"category"`
-// 	SubCategory  string             `bson:"subcategory" json:"subcategory"`
-// 	Location     string             `bson:"location" json:"location"`
-// 	Wage         string             `bson:"wage" json:"wage"`
-// 	Duration     string             `bson:"duration" json:"duration"`
-// 	Phone        string             `bson:"contact" json:"contact"`
-// 	Requirements string             `bson:"requirements" json:"requirements"`
-// 	Images       []string           `bson:"images" json:"images"`
-// 	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
-// }
-
-// // type Baito struct {
-// // 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
-// // 	Title       string             `bson:"title" json:"title"`
-// // 	Content     string             `bson:"content" json:"content"`
-// // 	Category    string             `bson:"category" json:"category"`
-// // 	SubCategory string             `bson:"subcategory" json:"subcategory"`
-// // 	Images      []string           `bson:"images" json:"images"`
-// // 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
-// // 	CreatedBy   primitive.ObjectID `bson:"createdBy,omitempty" json:"createdBy,omitempty"` // optional
-// // }
-
 type Post struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
 	Title       string             `bson:"title" json:"title"`
@@ -154,6 +106,7 @@ type Post struct {
 	Category    string             `bson:"category" json:"category"`
 	Subcategory string             `bson:"subcategory" json:"subcategory"`
 	ImagePaths  []string           `bson:"imagePaths" json:"imagePaths"`
+	CreatedBy   string             `bson:"createdBy" json:"createdBy"`
 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
 }

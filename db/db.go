@@ -14,7 +14,6 @@ var (
 	CartCollection              *mongo.Collection
 	OrderCollection             *mongo.Collection
 	CatalogueCollection         *mongo.Collection
-	BaitoApplicationsCollection *mongo.Collection
 	FarmsCollection             *mongo.Collection
 	FarmOrdersCollection        *mongo.Collection
 	CropsCollection             *mongo.Collection
@@ -45,11 +44,11 @@ var (
 	MediaCollection             *mongo.Collection
 	ArtistsCollection           *mongo.Collection
 	CartoonsCollection          *mongo.Collection
-	ForumsCollection            *mongo.Collection
 	ChatsCollection             *mongo.Collection
 	MessagesCollection          *mongo.Collection
 	ReportsCollection           *mongo.Collection
 	BaitoCollection             *mongo.Collection
+	BaitoApplicationsCollection *mongo.Collection
 	Client                      *mongo.Client
 )
 
@@ -67,46 +66,45 @@ func init() {
 	}
 
 	// CreateIndexes(Client)
-	MapsCollection = Client.Database("eventdb").Collection("maps")
-	OrderCollection = Client.Database("eventdb").Collection("orders")
-	CartCollection = Client.Database("eventdb").Collection("cart")
+	ActivitiesCollection = Client.Database("eventdb").Collection("activities")
+	ArtistEventsCollection = Client.Database("eventdb").Collection("artistevents")
+	ArtistsCollection = Client.Database("eventdb").Collection("artists")
+	BaitoCollection = Client.Database("eventdb").Collection("baito")
 	BaitoApplicationsCollection = Client.Database("eventdb").Collection("baitoapply")
+	BookingsCollection = Client.Database("eventdb").Collection("bookings")
+	BehindTheScenesCollection = Client.Database("eventdb").Collection("bts")
+	CartCollection = Client.Database("eventdb").Collection("cart")
+	CartoonsCollection = Client.Database("eventdb").Collection("cartoons")
 	CatalogueCollection = Client.Database("eventdb").Collection("catalogue")
-	FarmsCollection = Client.Database("eventdb").Collection("farms")
-	FarmOrdersCollection = Client.Database("eventdb").Collection("forders")
-	CropsCollection = Client.Database("eventdb").Collection("crops")
+	ChatsCollection = Client.Database("eventdb").Collection("chats")
 	CommentsCollection = Client.Database("eventdb").Collection("comments")
+	CropsCollection = Client.Database("eventdb").Collection("crops")
+	EventsCollection = Client.Database("eventdb").Collection("events")
+	FarmsCollection = Client.Database("eventdb").Collection("farms")
+	FilesCollection = Client.Database("eventdb").Collection("files")
+	FollowingsCollection = Client.Database("eventdb").Collection("followings")
+	FarmOrdersCollection = Client.Database("eventdb").Collection("forders")
+	ItineraryCollection = Client.Database("eventdb").Collection("itinerary")
+	LikesCollection = Client.Database("eventdb").Collection("likes")
+	MapsCollection = Client.Database("eventdb").Collection("maps")
+	MediaCollection = Client.Database("eventdb").Collection("media")
+	MenuCollection = Client.Database("eventdb").Collection("menu")
+	MerchCollection = Client.Database("eventdb").Collection("merch")
+	MessagesCollection = Client.Database("eventdb").Collection("messages")
+	OrderCollection = Client.Database("eventdb").Collection("orders")
+	PlacesCollection = Client.Database("eventdb").Collection("places")
+	PostsCollection = Client.Database("eventdb").Collection("posts")
+	ProductCollection = Client.Database("eventdb").Collection("products")
+	PurchasedTicketsCollection = Client.Database("eventdb").Collection("purticks")
+	ReportsCollection = Client.Database("eventdb").Collection("reports")
+	ReviewsCollection = Client.Database("eventdb").Collection("reviews")
 	RoomsCollection = Client.Database("eventdb").Collection("rooms")
 	SettingsCollection = Client.Database("eventdb").Collection("settings")
-	ReviewsCollection = Client.Database("eventdb").Collection("reviews")
-	FollowingsCollection = Client.Database("eventdb").Collection("followings")
-	LikesCollection = Client.Database("eventdb").Collection("likes")
-	ProductCollection = Client.Database("eventdb").Collection("products")
-	ItineraryCollection = Client.Database("eventdb").Collection("itinerary")
-	UserCollection = Client.Database("eventdb").Collection("users")
-	UserDataCollection = Client.Database("eventdb").Collection("userdata")
-	TicketsCollection = Client.Database("eventdb").Collection("ticks")
-	PurchasedTicketsCollection = Client.Database("eventdb").Collection("purticks")
-	BehindTheScenesCollection = Client.Database("eventdb").Collection("bts")
-	PlacesCollection = Client.Database("eventdb").Collection("places")
-	BookingsCollection = Client.Database("eventdb").Collection("bookings")
 	SlotCollection = Client.Database("eventdb").Collection("slots")
-	PostsCollection = Client.Database("eventdb").Collection("posts")
-	FilesCollection = Client.Database("eventdb").Collection("files")
-	MerchCollection = Client.Database("eventdb").Collection("merch")
-	MenuCollection = Client.Database("eventdb").Collection("menu")
-	ActivitiesCollection = Client.Database("eventdb").Collection("activities")
-	EventsCollection = Client.Database("eventdb").Collection("events")
-	ArtistEventsCollection = Client.Database("eventdb").Collection("artistevents")
 	SongsCollection = Client.Database("eventdb").Collection("songs")
-	MediaCollection = Client.Database("eventdb").Collection("media")
-	ArtistsCollection = Client.Database("eventdb").Collection("artists")
-	CartoonsCollection = Client.Database("eventdb").Collection("cartoons")
-	ChatsCollection = Client.Database("eventdb").Collection("chats")
-	ForumsCollection = Client.Database("eventdb").Collection("forums")
-	MessagesCollection = Client.Database("eventdb").Collection("messages")
-	ReportsCollection = Client.Database("eventdb").Collection("reports")
-	BaitoCollection = Client.Database("eventdb").Collection("baito")
+	TicketsCollection = Client.Database("eventdb").Collection("ticks")
+	UserDataCollection = Client.Database("eventdb").Collection("userdata")
+	UserCollection = Client.Database("eventdb").Collection("users")
 }
 
 func OptionsFindLatest(limit int64) *options.FindOptions {

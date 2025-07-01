@@ -67,6 +67,7 @@ type PricePoint struct {
 type Crop struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Name         string             `json:"name"`
+	CropId       string             `json:"cropid"`
 	Price        float64            `json:"price"`
 	Quantity     int                `json:"quantity"`
 	Unit         string             `json:"unit"`
@@ -103,4 +104,29 @@ type CropCatalogueItem struct {
 	Unit       string `json:"unit"`
 	Featured   bool   `json:"featured"`
 	PriceRange []int  `json:"priceRange,omitempty"`
+}
+
+//	type Product struct {
+//		ID          string  `json:"id" bson:"_id,omitempty"`
+//		Name        string  `json:"name" bson:"name"`
+//		Price       float64 `json:"price" bson:"price"`
+//		Description string  `json:"description" bson:"description"`
+//		ImageURL    string  `json:"imageUrl" bson:"imageUrl"`
+//	}
+type Product struct {
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name        string             `bson:"name" json:"name"`
+	Description string             `bson:"description" json:"description"`
+	Price       float64            `bson:"price" json:"price"`
+	ImageURL    string             `bson:"imageUrl" json:"imageUrl"`
+	Category    string             `bson:"category" json:"category"`
+	Type        string             `bson:"type" json:"type"` // "product" or "tool"
+}
+
+type Tool struct {
+	ID          string  `json:"id" bson:"_id,omitempty"`
+	Name        string  `json:"name" bson:"name"`
+	Price       float64 `json:"price" bson:"price"`
+	Description string  `json:"description" bson:"description"`
+	ImageURL    string  `json:"imageUrl" bson:"imageUrl"`
 }

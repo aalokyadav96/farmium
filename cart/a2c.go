@@ -30,7 +30,7 @@ func AddToCart(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	// Must be logged in
-	userID := utils.GetUserIDFromContext(r.Context())
+	userID := utils.GetUserIDFromRequest(r)
 	if userID == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -74,7 +74,7 @@ func GetCart(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
-	userID := utils.GetUserIDFromContext(r.Context())
+	userID := utils.GetUserIDFromRequest(r)
 	if userID == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -130,7 +130,7 @@ func UpdateCart(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	userID := utils.GetUserIDFromContext(r.Context())
+	userID := utils.GetUserIDFromRequest(r)
 	if userID == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -184,7 +184,7 @@ func CreateCheckoutSession(w http.ResponseWriter, r *http.Request, _ httprouter.
 		return
 	}
 
-	userID := utils.GetUserIDFromContext(r.Context())
+	userID := utils.GetUserIDFromRequest(r)
 	if userID == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -209,7 +209,7 @@ func PlaceOrder(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	userID := utils.GetUserIDFromContext(r.Context())
+	userID := utils.GetUserIDFromRequest(r)
 	if userID == "" {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

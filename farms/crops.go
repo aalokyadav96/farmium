@@ -52,6 +52,8 @@ func handleImageUpload(r *http.Request, fieldName, dir string) (string, error) {
 }
 
 func parseCropForm(r *http.Request) models.Crop {
+	cropName := r.FormValue("name")
+	formatted := strings.ToLower(strings.ReplaceAll(cropName, " ", "_"))
 	crop := models.Crop{
 		ID:         primitive.NewObjectID(),
 		Name:       r.FormValue("name"),
@@ -64,6 +66,7 @@ func parseCropForm(r *http.Request) models.Crop {
 		OutOfStock: r.FormValue("outOfStock") == "true",
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
+		CropId:     formatted,
 	}
 
 	if d := utils.ParseDate(r.FormValue("harvestDate")); d != nil {
@@ -330,21 +333,6 @@ func GetCropCatalogue(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true, "crops": uniqueCrops})
 }
 
-// func GetCropTypes(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-// 	cropTypes, err := db.CropsCollection.Distinct(context.Background(), "name", bson.M{})
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{
-// 			"success": false,
-// 			"error":   "Failed to retrieve crop types",
-// 		})
-// 		return
-// 	}
-
-//		utils.RespondWithJSON(w, http.StatusOK, utils.M{
-//			"success": true,
-//			"types":   cropTypes,
-//		})
-//	}
 func GetCropTypes(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{}}}, // No filters, return all types
@@ -361,7 +349,7 @@ func GetCropTypes(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 						},
 					},
 				},
-				"imageUrl": bson.M{"$first": "$imageUrl"},
+				"imageUrl": bson.M{"$first": "$imageurl"},
 				"unit":     bson.M{"$first": "$unit"},
 			},
 		}},
@@ -390,372 +378,12 @@ func GetCropTypes(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	if len(cropTypes) == 0 {
+		cropTypes = []bson.M{}
+	}
+
 	utils.RespondWithJSON(w, http.StatusOK, utils.M{
 		"success":   true,
 		"cropTypes": cropTypes,
 	})
 }
-
-// func AddCrop(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	farmID, err := primitive.ObjectIDFromHex(ps.ByName("id"))
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid farm ID"})
-// 		return
-// 	}
-
-// 	// Retrieve user ID
-// 	requestingUserID, ok := r.Context().Value(globals.UserIDKey).(string)
-// 	if !ok {
-// 		http.Error(w, "Invalid user", http.StatusBadRequest)
-// 		return
-// 	}
-// 	_ = requestingUserID
-
-// 	if err := r.ParseMultipartForm(10 << 20); err != nil {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid form"})
-// 		return
-// 	}
-
-// 	name := r.FormValue("name")
-// 	if name == "" {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Name is required"})
-// 		return
-// 	}
-
-// 	crop := models.Crop{
-// 		ID:       primitive.NewObjectID(),
-// 		FarmID:   farmID,
-// 		Name:     name,
-// 		Price:    utils.ParseFloat(r.FormValue("price")),
-// 		Quantity: utils.ParseInt(r.FormValue("quantity")),
-// 		Unit:     r.FormValue("unit"),
-// 		Notes:    r.FormValue("notes"),
-// 		// FieldPlot:  r.FormValue("fieldPlot"),
-// 		Category:   r.FormValue("category"),
-// 		Featured:   r.FormValue("featured") == "true",
-// 		OutOfStock: r.FormValue("outOfStock") == "true",
-// 		CreatedAt:  time.Now(),
-// 		UpdatedAt:  time.Now(),
-// 	}
-
-// 	if d := utils.ParseDate(r.FormValue("harvestDate")); d != nil {
-// 		crop.HarvestDate = d
-// 	}
-// 	if d := utils.ParseDate(r.FormValue("expiryDate")); d != nil {
-// 		crop.ExpiryDate = d
-// 	}
-
-// 	if file, header, err := r.FormFile("image"); err == nil {
-// 		defer file.Close()
-// 		filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
-// 		path := "./static/uploads/crops/" + filename
-// 		os.MkdirAll("./static/uploads/crops", os.ModePerm)
-// 		out, err := os.Create(path)
-// 		if err == nil {
-// 			defer out.Close()
-// 			io.Copy(out, file)
-// 			crop.ImageURL = "/uploads/crops/" + filename
-// 		}
-// 	}
-
-// 	_, err = db.CropsCollection.InsertOne(context.Background(), crop)
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Insert failed"})
-// 		return
-// 	}
-
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true, "cropId": crop.ID.Hex()})
-// }
-
-// func EditCrop(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	cropID, err := primitive.ObjectIDFromHex(ps.ByName("cropid"))
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid crop ID"})
-// 		return
-// 	}
-
-// 	// Retrieve user ID
-// 	requestingUserID, ok := r.Context().Value(globals.UserIDKey).(string)
-// 	if !ok {
-// 		http.Error(w, "Invalid user", http.StatusBadRequest)
-// 		return
-// 	}
-// 	_ = requestingUserID
-
-// 	r.ParseMultipartForm(10 << 20)
-
-// 	updateFields := bson.M{
-// 		"name":     r.FormValue("name"),
-// 		"unit":     r.FormValue("unit"),
-// 		"price":    utils.ParseFloat(r.FormValue("price")),
-// 		"quantity": utils.ParseInt(r.FormValue("quantity")),
-// 		"notes":    r.FormValue("notes"),
-// 		// "fieldPlot":  r.FormValue("fieldPlot"),
-// 		"featured":   r.FormValue("featured") == "true",
-// 		"outOfStock": r.FormValue("outOfStock") == "true",
-// 		"updatedAt":  time.Now(),
-// 	}
-
-// 	if d := utils.ParseDate(r.FormValue("harvestDate")); d != nil {
-// 		updateFields["harvestDate"] = d
-// 	}
-// 	if d := utils.ParseDate(r.FormValue("expiryDate")); d != nil {
-// 		updateFields["expiryDate"] = d
-// 	}
-
-// 	if file, header, err := r.FormFile("image"); err == nil {
-// 		defer file.Close()
-// 		filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
-// 		path := "./static/uploads/crops/" + filename
-// 		os.MkdirAll("./static/uploads/crops", os.ModePerm)
-// 		out, err := os.Create(path)
-// 		if err == nil {
-// 			defer out.Close()
-// 			io.Copy(out, file)
-// 			updateFields["imageUrl"] = "/static/uploads/crops/" + filename
-// 		}
-// 	}
-
-// 	filter := bson.M{"_id": cropID}
-// 	_, err = db.CropsCollection.UpdateOne(context.Background(), filter, bson.M{"$set": updateFields})
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false})
-// 		return
-// 	}
-
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true})
-// }
-// func DeleteCrop(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	cropID, err := primitive.ObjectIDFromHex(ps.ByName("cropid"))
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid crop ID"})
-// 		return
-// 	}
-
-// 	// Retrieve user ID
-// 	requestingUserID, ok := r.Context().Value(globals.UserIDKey).(string)
-// 	if !ok {
-// 		http.Error(w, "Invalid user", http.StatusBadRequest)
-// 		return
-// 	}
-// 	_ = requestingUserID
-
-// 	res, err := db.CropsCollection.DeleteOne(context.Background(), bson.M{"_id": cropID})
-// 	if err != nil || res.DeletedCount == 0 {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to delete crop"})
-// 		return
-// 	}
-
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true})
-// }
-// func GetFilteredCrops(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-// 	query := bson.M{}
-// 	category := r.URL.Query().Get("category")
-// 	if category != "" {
-// 		query["category"] = category
-// 	}
-// 	if region := r.URL.Query().Get("region"); region != "" {
-// 		query["farmLocation"] = region
-// 	}
-// 	if r.URL.Query().Get("inStock") == "true" {
-// 		query["quantity"] = bson.M{"$gt": 0}
-// 	}
-// 	if min := utils.ParseFloat(r.URL.Query().Get("minPrice")); min > 0 {
-// 		query["price"] = bson.M{"$gte": min}
-// 	}
-// 	if max := utils.ParseFloat(r.URL.Query().Get("maxPrice")); max > 0 {
-// 		if p, ok := query["price"].(bson.M); ok {
-// 			p["$lte"] = max
-// 		} else {
-// 			query["price"] = bson.M{"$lte": max}
-// 		}
-// 	}
-// 	// TODO: implement geolocation filter if farm coords are stored
-
-// 	cursor, err := db.CropsCollection.Find(context.Background(), query)
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false})
-// 		return
-// 	}
-// 	var crops []models.Crop
-// 	if err = cursor.All(context.Background(), &crops); err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false})
-// 		return
-// 	}
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true, "crops": crops})
-// }
-// func GetPreCropCatalogue(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	const redisKey = "crop_catalogue"
-
-// 	// Try Redis first
-// 	val, err := rdx.Conn.Get(ctx, redisKey).Result()
-// 	if err == nil && val != "" {
-// 		// Cache hit
-// 		var cached []models.CropCatalogueItem
-// 		if err := json.Unmarshal([]byte(val), &cached); err == nil {
-// 			utils.RespondWithJSON(w, http.StatusOK, utils.M{
-// 				"success": true,
-// 				"crops":   cached,
-// 			})
-// 			return
-// 		}
-// 	}
-
-// 	// Fall back to MongoDB
-// 	cursor, err := db.CatalogueCollection.Find(ctx, bson.M{})
-// 	if err == nil {
-// 		var fromMongo []models.CropCatalogueItem
-// 		if err := cursor.All(ctx, &fromMongo); err == nil && len(fromMongo) > 0 {
-// 			// Cache it back to Redis
-// 			if jsonBytes, err := json.Marshal(fromMongo); err == nil {
-// 				_ = rdx.Conn.Set(ctx, redisKey, string(jsonBytes), time.Hour*2).Err()
-// 			}
-// 			utils.RespondWithJSON(w, http.StatusOK, utils.M{
-// 				"success": true,
-// 				"crops":   fromMongo,
-// 			})
-// 			return
-// 		}
-// 	}
-
-// 	// Final fallback to CSV
-// 	file, err := os.Open("data/pre_crop_catalogue.csv")
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{
-// 			"success": false,
-// 			"message": "Failed to retrieve catalogue from all sources",
-// 		})
-// 		return
-// 	}
-// 	defer file.Close()
-
-// 	var crops []models.CropCatalogueItem
-// 	rdr := csv.NewReader(file)
-// 	headers, err := rdr.Read()
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{
-// 			"success": false,
-// 			"message": "Invalid CSV format",
-// 		})
-// 		return
-// 	}
-
-// 	for {
-// 		record, err := rdr.Read()
-// 		if err == io.EOF {
-// 			break
-// 		}
-// 		if err != nil || len(record) != len(headers) {
-// 			continue
-// 		}
-
-// 		entry := models.CropCatalogueItem{}
-// 		for i, field := range headers {
-// 			switch strings.ToLower(field) {
-// 			case "name":
-// 				entry.Name = record[i]
-// 			case "category":
-// 				entry.Category = record[i]
-// 			case "imageurl":
-// 				entry.ImageURL = record[i]
-// 			case "stock":
-// 				entry.Stock, _ = strconv.Atoi(record[i])
-// 			case "unit":
-// 				entry.Unit = record[i]
-// 			case "featured":
-// 				entry.Featured = strings.ToLower(record[i]) == "true"
-// 			case "pricerange":
-// 				// Expects something like "45-65"
-// 				rangeParts := strings.Split(record[i], "-")
-// 				if len(rangeParts) == 2 {
-// 					min, _ := strconv.Atoi(rangeParts[0])
-// 					max, _ := strconv.Atoi(rangeParts[1])
-// 					entry.PriceRange = []int{min, max}
-// 				}
-// 			}
-// 		}
-// 		crops = append(crops, entry)
-// 	}
-
-// 	// Cache the parsed result to Redis
-// 	if jsonBytes, err := json.Marshal(crops); err == nil {
-// 		_ = rdx.Conn.Set(ctx, redisKey, string(jsonBytes), time.Hour*2).Err()
-// 	}
-
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{
-// 		"success": true,
-// 		"crops":   crops,
-// 	})
-// }
-
-// func GetCropCatalogue(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	cursor, err := db.CropsCollection.Find(ctx, bson.M{})
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{
-// 			"success": false,
-// 			"message": "Failed to fetch crop catalogue",
-// 		})
-// 		return
-// 	}
-// 	defer cursor.Close(ctx)
-
-// 	var allCrops []models.Crop
-// 	if err := cursor.All(ctx, &allCrops); err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{
-// 			"success": false,
-// 			"message": "Failed to decode crops",
-// 		})
-// 		return
-// 	}
-
-// 	type UniqueKey struct {
-// 		Name        string
-// 		CatalogueId string
-// 	}
-
-// 	seen := make(map[UniqueKey]bool)
-// 	uniqueCrops := []models.Crop{}
-
-// 	for _, crop := range allCrops {
-// 		key := UniqueKey{
-// 			Name:        strings.ToLower(crop.Name),
-// 			CatalogueId: strings.ToLower(crop.CatalogueId),
-// 		}
-
-// 		if !seen[key] {
-// 			seen[key] = true
-// 			uniqueCrops = append(uniqueCrops, crop)
-// 		}
-// 	}
-
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{
-// 		"success": true,
-// 		"crops":   uniqueCrops,
-// 	})
-// }
-
-// func GetCropCatalogue(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	cursor, err := db.CropsCollection.Find(ctx, bson.M{})
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to fetch crops"})
-// 		return
-// 	}
-// 	defer cursor.Close(ctx)
-
-// 	var crops []models.Crop
-// 	if err = cursor.All(ctx, &crops); err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to decode crops"})
-// 		return
-// 	}
-
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true, "crops": crops})
-// }

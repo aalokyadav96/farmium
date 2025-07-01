@@ -1,0 +1,323 @@
+Good. Here’s a breakdown of **soft deletion**, **logging**, and **audit trails** for your Go-based backend using MongoDB. Each serves a different purpose, but they integrate cleanly.
+
+---
+
+## ✅ 1. **Soft Deletion**
+
+Instead of removing the document from the database, **mark it as deleted** and skip it in queries.
+
+### 🔸 Schema Update (models.Comment)
+
+```go
+type Comment struct {
+	ID         string    `json:"_id" bson:"_id,omitempty"`
+	EntityType string    `json:"entity_type" bson:"entity_type"`
+	EntityID   string    `json:"entity_id" bson:"entity_id"`
+	CreatedBy  string    `json:"created_by" bson:"created_by"`
+	Content    string    `json:"content" bson:"content"`
+	CreatedAt  time.Time `json:"created_at" bson:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at" bson:"updated_at"`
+	DeletedAt  *time.Time `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"` // Add this
+}
+```
+
+### 🔸 Soft Delete Logic in `DeleteComment`
+
+```go
+now := time.Now()
+
+update := bson.M{
+	"$set": bson.M{
+		"deleted_at": now,
+	},
+}
+
+_, err = db.CommentsCollection.UpdateOne(context.TODO(), bson.M{"_id": objID}, update)
+if err != nil {
+	http.Error(w, "Soft delete failed", http.StatusInternalServerError)
+	return
+}
+
+w.WriteHeader(http.StatusNoContent)
+```
+
+### 🔸 Modify `GetComments` to Filter Deleted Comments
+
+```go
+filter := bson.M{
+	"entity_type": entityType,
+	"entity_id":   entityID,
+	"deleted_at":  bson.M{"$exists": false}, // Exclude deleted
+}
+```
+
+---
+
+## ✅ 2. **Logging (Basic)**
+
+Log important actions like create, update, delete with time and user context.
+
+Use Go’s built-in `log` or a structured logger like [zerolog](https://github.com/rs/zerolog) if you prefer.
+
+### Example:
+
+```go
+log.Printf("[COMMENT DELETE] User: %s deleted comment: %s", claims.UserID, commentID)
+```
+
+Add similar logs in `CreateComment`, `UpdateComment`, etc.
+
+---
+
+## ✅ 3. **Audit Trail Collection**
+
+Store immutable actions for accountability, debugging, or analytics.
+
+### 🔸 Define Audit Model
+
+```go
+type AuditLog struct {
+	ID         primitive.ObjectID `bson:"_id,omitempty"`
+	UserID     string             `bson:"user_id"`
+	Action     string             `bson:"action"`     // e.g. "comment_create", "comment_update"
+	TargetID   string             `bson:"target_id"`  // comment ID
+	EntityType string             `bson:"entity_type"`
+	EntityID   string             `bson:"entity_id"`
+	Timestamp  time.Time          `bson:"timestamp"`
+	Details    interface{}        `bson:"details"`    // optional metadata (e.g. content diff)
+}
+```
+
+### 🔸 Insert Audit Entry
+
+Create a helper:
+
+```go
+func LogAudit(userID, action, targetID, entityType, entityID string, details interface{}) {
+	entry := AuditLog{
+		UserID:     userID,
+		Action:     action,
+		TargetID:   targetID,
+		EntityType: entityType,
+		EntityID:   entityID,
+		Timestamp:  time.Now(),
+		Details:    details,
+	}
+
+	_, err := db.AuditCollection.InsertOne(context.TODO(), entry)
+	if err != nil {
+		log.Printf("[AUDIT] Failed to log audit: %v", err)
+	}
+}
+```
+
+### 🔸 Example Usage in `UpdateComment`
+
+```go
+LogAudit(claims.UserID, "comment_update", commentID, existing.EntityType, existing.EntityID, map[string]string{
+	"old": existing.Content,
+	"new": body.Content,
+})
+```
+
+---
+
+## ✅ Summary of Changes
+
+| Feature           | What You Changed                                    |
+| ----------------- | --------------------------------------------------- |
+| **Soft Delete**   | Added `deleted_at`, update instead of delete        |
+| **Secure Filter** | Adjusted `GetComments` to exclude soft-deleted data |
+| **Logging**       | Added `log.Printf` for key actions                  |
+| **Audit Trail**   | Wrote structured logs into `audit_logs` collection  |
+
+---
+
+Let me know if you want help adding:
+
+* A MongoDB index for `deleted_at` cleanup,
+* A cron job to purge soft-deleted data,
+* A dashboard route for retrieving audit logs.
+
+
+Here’s a complete plan to implement **soft deletion cleanup**, an **audit trail system**, and an **admin dashboard endpoint** to view logs. This will keep your system **secure, auditable**, and **maintainable**.
+
+---
+
+## ✅ 1. Soft Deletion Cleanup (Scheduled Purge)
+
+Since soft deletion keeps records, you may want to purge them after a period (e.g. 30 days).
+
+### 🔸 MongoDB TTL Index
+
+Add this index once, during app startup or via manual migration:
+
+```go
+func EnsureTTLIndex() {
+	indexModel := mongo.IndexModel{
+		Keys: bson.D{{Key: "deleted_at", Value: 1}},
+		Options: options.Index().
+			SetExpireAfterSeconds(60 * 60 * 24 * 30), // 30 days
+	}
+	_, err := db.CommentsCollection.Indexes().CreateOne(context.TODO(), indexModel)
+	if err != nil {
+		log.Fatalf("Failed to create TTL index: %v", err)
+	}
+}
+```
+
+Call `EnsureTTLIndex()` once during app init.
+
+---
+
+## ✅ 2. Audit Trail System (Full Setup)
+
+### 🔸 Audit Log Model (create in `models/audit.go`)
+
+```go
+package models
+
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+type AuditLog struct {
+	ID         primitive.ObjectID `bson:"_id,omitempty"`
+	UserID     string             `bson:"user_id" json:"user_id"`
+	Action     string             `bson:"action" json:"action"` // e.g. "comment_update"
+	TargetID   string             `bson:"target_id" json:"target_id"`
+	EntityType string             `bson:"entity_type" json:"entity_type"`
+	EntityID   string             `bson:"entity_id" json:"entity_id"`
+	Timestamp  time.Time          `bson:"timestamp" json:"timestamp"`
+	Details    interface{}        `bson:"details,omitempty" json:"details,omitempty"`
+}
+```
+
+### 🔸 Audit Helper (`utils/audit.go`)
+
+```go
+package utils
+
+import (
+	"context"
+	"log"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"naevis/db"
+	"naevis/models"
+)
+
+func LogAudit(userID, action, targetID, entityType, entityID string, details interface{}) {
+	logEntry := models.AuditLog{
+		UserID:     userID,
+		Action:     action,
+		TargetID:   targetID,
+		EntityType: entityType,
+		EntityID:   entityID,
+		Timestamp:  time.Now(),
+		Details:    details,
+	}
+
+	_, err := db.AuditCollection.InsertOne(context.TODO(), logEntry)
+	if err != nil {
+		log.Printf("[AUDIT] Failed to log audit: %v", err)
+	}
+}
+```
+
+### 🔸 Example Usage
+
+Inside `UpdateComment`:
+
+```go
+utils.LogAudit(claims.UserID, "comment_update", commentID, existing.EntityType, existing.EntityID, map[string]string{
+	"old": existing.Content,
+	"new": body.Content,
+})
+```
+
+Inside `CreateComment`:
+
+```go
+utils.LogAudit(claims.UserID, "comment_create", comment.ID, comment.EntityType, comment.EntityID, nil)
+```
+
+Inside `DeleteComment`:
+
+```go
+utils.LogAudit(claims.UserID, "comment_delete", commentID, existing.EntityType, existing.EntityID, nil)
+```
+
+---
+
+## ✅ 3. Admin Audit Log Viewer Endpoint
+
+Create a route that returns audit logs. You can later filter by `action`, `user_id`, etc.
+
+### 🔸 Route Handler
+
+```go
+func GetAuditLogs(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	tokenString := r.Header.Get("Authorization")
+	claims, err := profile.ValidateJWT(tokenString)
+	if err != nil || !claims.IsAdmin { // Assume your JWT has `IsAdmin` boolean
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	filter := bson.M{} // optionally filter here, e.g., by action or entityID
+	cursor, err := db.AuditCollection.Find(context.TODO(), filter)
+	if err != nil {
+		http.Error(w, "DB query failed", http.StatusInternalServerError)
+		return
+	}
+	defer cursor.Close(context.TODO())
+
+	var logs []models.AuditLog
+	if err := cursor.All(context.TODO(), &logs); err != nil {
+		http.Error(w, "Cursor error", http.StatusInternalServerError)
+		return
+	}
+
+	utils.RespondWithJSON(w, http.StatusOK, logs)
+}
+```
+
+### 🔸 Router
+
+```go
+router.GET("/admin/audit-logs", GetAuditLogs)
+```
+
+---
+
+## 🧪 Test Checklist
+
+| Action                  | Expected Result                                 |
+| ----------------------- | ----------------------------------------------- |
+| Create comment          | Appears in audit log as `comment_create`        |
+| Edit comment            | Audit includes old/new content                  |
+| Soft delete comment     | Marked with `deleted_at`, not fetched anymore   |
+| 30 days later           | Soft-deleted comment is removed (via TTL index) |
+| GET `/admin/audit-logs` | Returns all actions if `IsAdmin == true`        |
+
+---
+
+## 🔧 Optional Enhancements
+
+* Add query filters to `GetAuditLogs` (e.g. `?user_id=xyz&action=comment_update`)
+* Add pagination
+* Create `GET /comments/:entitytype/:entityid?include_deleted=true` for admins
+
+---
+
+Let me know if you want:
+
+* a CLI cleanup tool,
+* a Go job for exporting logs to a file or another DB,
+* user impersonation logging.
+
+All of this fits well into a secure backend and scales cleanly.

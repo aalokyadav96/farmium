@@ -1,0 +1,19 @@
+package utils
+
+import (
+	"github.com/SherClockHolmes/webpush-go"
+)
+
+func sendPushNotification(subscription webpush.Subscription, message string) error {
+	resp, err := webpush.SendNotification([]byte(message), &subscription, &webpush.Options{
+		Subscriber:      "mailto:you@example.com",
+		VAPIDPublicKey:  "YOUR_PUBLIC_KEY",
+		VAPIDPrivateKey: "YOUR_PRIVATE_KEY",
+		TTL:             30,
+	})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}

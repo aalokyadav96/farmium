@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"naevis/newchat"
 	"naevis/ratelim"
 	"naevis/routes"
 	"net/http"
@@ -42,18 +43,26 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 // Set up all routes and middleware layers
-func setupRouter(rateLimiter *ratelim.RateLimiter) http.Handler {
+func setupRouter(rateLimiter *ratelim.RateLimiter, hub *newchat.Hub) http.Handler {
+	// func setupRouter(rateLimiter *ratelim.RateLimiter) http.Handler {
 	router := httprouter.New()
 	router.GET("/health", Index)
 
+	routes.AddActivityRoutes(router)
 	routes.AddAuthRoutes(router)
 	routes.AddCartRoutes(router)
-	routes.RegisterCropRoutes(router)
+	routes.AddChatRoutes(router)
+	routes.AddCommentsRoutes(router)
+	routes.AddDiscordRoutes(router)
 	routes.RegisterFarmRoutes(router)
 	routes.AddHomeRoutes(router)
+	routes.AddNewChatRoutes(router, hub)
 	routes.AddProfileRoutes(router)
+	routes.AddReportRoutes(router)
+	routes.AddReviewsRoutes(router)
+	routes.AddSettingsRoutes(router)
 	routes.AddStaticRoutes(router)
-	routes.AddUtilityRoutes(router, rateLimiter)
+	routes.AddSuggestionsRoutes(router)
 
 	// CORS setup (adjust AllowedOrigins in production)
 	c := cors.New(cors.Options{
@@ -73,8 +82,13 @@ func main() {
 		log.Println("No .env file found. Continuing with system environment variables.")
 	}
 
+	hub := newchat.NewHub()
+	go hub.Run()
+	// go newchat.CleanupOrphans()
+
 	rateLimiter := ratelim.NewRateLimiter()
-	handler := setupRouter(rateLimiter)
+	handler := setupRouter(rateLimiter, hub)
+	// handler := setupRouter(rateLimiter)
 
 	server := &http.Server{
 		Addr:              ":4000",

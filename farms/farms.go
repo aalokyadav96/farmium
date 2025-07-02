@@ -57,19 +57,6 @@ func CreateFarm(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	// if file, header, err := r.FormFile("photo"); err == nil {
-	// 	defer file.Close()
-	// 	filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
-	// 	path := "./static/uploads/farms/" + filename
-	// 	os.MkdirAll("./static/uploads/farms", os.ModePerm)
-	// 	out, err := os.Create(path)
-	// 	if err == nil {
-	// 		defer out.Close()
-	// 		io.Copy(out, file)
-	// 		farm.Photo = "/uploads/farms/" + filename
-	// 	}
-	// }
-
 	if path, err := handleFarmPhotoUpload(r, farm.FarmID); err == nil {
 		farm.Photo = path
 	}
@@ -178,20 +165,7 @@ func EditFarm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if path, err := handleFarmPhotoUpload(r, farmID); err == nil {
 			updateFields["photo"] = path
 		}
-		// if file, handler, err := r.FormFile("image"); err == nil {
-		// 	defer file.Close()
-		// 	dir := "uploads/farms"
-		// 	os.MkdirAll(dir, os.ModePerm)
-		// 	filePath := fmt.Sprintf("%s/%s_%s", dir, farmID.Hex(), handler.Filename)
 
-		// 	dst, err := os.Create(filePath)
-		// 	if err == nil {
-		// 		defer dst.Close()
-		// 		if _, err := io.Copy(dst, file); err == nil {
-		// 			updateFields["photo"] = "/" + filePath
-		// 		}
-		// 	}
-		// }
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid JSON body"})
@@ -234,81 +208,6 @@ func EditFarm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true, "message": "Farm updated"})
 }
-
-// func EditFarm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	farmID, err := primitive.ObjectIDFromHex(ps.ByName("id"))
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid ID"})
-// 		return
-// 	}
-// 	var input models.Farm
-// 	updateFields := bson.M{}
-
-// 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid JSON body"})
-// 		return
-// 	}
-
-// 	contentType := r.Header.Get("Content-Type")
-// 	if strings.HasPrefix(contentType, "multipart/form-data") {
-// 		r.ParseMultipartForm(10 << 20)
-
-// 		input.Name = r.FormValue("name")
-// 		input.Location = r.FormValue("location")
-// 		input.Description = r.FormValue("description")
-// 		input.Owner = r.FormValue("owner")
-// 		input.Contact = r.FormValue("contact")
-// 		input.AvailabilityTiming = r.FormValue("availabilityTiming")
-
-// 		if file, handler, err := r.FormFile("photo"); err == nil {
-// 			defer file.Close()
-// 			dir := "uploads/farms"
-// 			os.MkdirAll(dir, os.ModePerm)
-// 			filePath := fmt.Sprintf("%s/%s_%s", dir, farmID.Hex(), handler.Filename)
-
-// 			dst, err := os.Create(filePath)
-// 			if err == nil {
-// 				defer dst.Close()
-// 				io.Copy(dst, file)
-// 				updateFields["photo"] = "/" + filePath
-// 			}
-// 		}
-// 	} else {
-// 		json.NewDecoder(r.Body).Decode(&input)
-// 	}
-
-// 	if input.Name != "" {
-// 		updateFields["name"] = input.Name
-// 	}
-// 	if input.Location != "" {
-// 		updateFields["location"] = input.Location
-// 	}
-// 	if input.Description != "" {
-// 		updateFields["description"] = input.Description
-// 	}
-// 	if input.Owner != "" {
-// 		updateFields["owner"] = input.Owner
-// 	}
-// 	if input.Contact != "" {
-// 		updateFields["contact"] = input.Contact
-// 	}
-// 	if input.AvailabilityTiming != "" {
-// 		updateFields["availabilityTiming"] = input.AvailabilityTiming
-// 	}
-// 	if len(updateFields) == 0 {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Nothing to update"})
-// 		return
-// 	}
-
-// 	updateFields["updatedAt"] = time.Now()
-// 	_, err = db.FarmsCollection.UpdateOne(context.Background(), bson.M{"_id": farmID}, bson.M{"$set": updateFields})
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false})
-// 		return
-// 	}
-
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true})
-// }
 
 func DeleteFarm(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	farmID, err := primitive.ObjectIDFromHex(ps.ByName("id"))
@@ -627,153 +526,6 @@ func GetCropTypeFarms(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		"limit":    limit,
 	})
 }
-
-// func GetCropFarms(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	cropIDHex := ps.ByName("cropid")
-// 	if cropIDHex == "" {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Missing cropId parameter"})
-// 		return
-// 	}
-
-// 	cropID, err := primitive.ObjectIDFromHex(cropIDHex)
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid cropId"})
-// 		return
-// 	}
-
-// 	// Fetch all crop instances with this ID (if duplicates exist across farms)
-// 	cursor, err := db.CropsCollection.Find(ctx, bson.M{"_id": cropID})
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to fetch crop data"})
-// 		return
-// 	}
-// 	defer cursor.Close(ctx)
-
-// 	var cropInstances []models.Crop
-// 	if err := cursor.All(ctx, &cropInstances); err != nil || len(cropInstances) == 0 {
-// 		utils.RespondWithJSON(w, http.StatusNotFound, utils.M{"success": false, "message": "Crop not found"})
-// 		return
-// 	}
-
-// 	// Extract basic crop info from first record
-// 	cropName := cropInstances[0].Name
-// 	cropCategory := cropInstances[0].Category
-
-// 	// Map to keep track of unique farmIDs
-// 	farmIDs := make([]primitive.ObjectID, 0)
-// 	for _, crop := range cropInstances {
-// 		farmIDs = append(farmIDs, crop.FarmID)
-// 	}
-
-// 	// Fetch farms by those IDs
-// 	farmCursor, err := db.FarmsCollection.Find(ctx, bson.M{"_id": bson.M{"$in": farmIDs}})
-// 	if err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to fetch farms"})
-// 		return
-// 	}
-// 	defer farmCursor.Close(ctx)
-
-// 	var farms []models.Farm
-// 	if err := farmCursor.All(ctx, &farms); err != nil {
-// 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to decode farms"})
-// 		return
-// 	}
-
-// 	// Build listings
-// 	type CropListing struct {
-// 		FarmID     string  `json:"farmId"`
-// 		FarmName   string  `json:"farmName"`
-// 		Location   string  `json:"location"`
-// 		Breed      string  `json:"breed"`
-// 		PricePerKg float64 `json:"pricePerKg"`
-// 	}
-
-// 	var listings []CropListing
-// 	for _, crop := range cropInstances {
-// 		// find corresponding farm
-// 		var farmName, location string
-// 		for _, f := range farms {
-// 			if f.FarmID == crop.FarmID {
-// 				farmName = f.Name
-// 				location = f.Location
-// 				break
-// 			}
-// 		}
-// 		listings = append(listings, CropListing{
-// 			FarmID:     crop.FarmID.Hex(),
-// 			FarmName:   farmName,
-// 			Location:   location,
-// 			Breed:      crop.Notes,
-// 			PricePerKg: crop.Price,
-// 		})
-// 	}
-
-// 	// Send final response
-// 	utils.RespondWithJSON(w, http.StatusOK, utils.M{
-// 		"success":  true,
-// 		"name":     cropName,
-// 		"category": cropCategory,
-// 		"listings": listings,
-// 	})
-// }
-
-// // func GetCropFarms(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-// // 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// // 	defer cancel()
-
-// // 	// cropIDHex := r.URL.Query().Get("cropid")
-// // 	cropIDHex := ps.ByName("cropid")
-// // 	if cropIDHex == "" {
-// // 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Missing cropId parameter"})
-// // 		return
-// // 	}
-
-// // 	cropID, err := primitive.ObjectIDFromHex(cropIDHex)
-// // 	if err != nil {
-// // 		utils.RespondWithJSON(w, http.StatusBadRequest, utils.M{"success": false, "message": "Invalid cropId"})
-// // 		return
-// // 	}
-
-// // 	// Find all crops with that cropId to get farmIds (in case there are duplicates across farms)
-// // 	cursor, err := db.CropsCollection.Find(ctx, bson.M{"_id": cropID})
-// // 	if err != nil {
-// // 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to fetch crop data"})
-// // 		return
-// // 	}
-// // 	defer cursor.Close(ctx)
-
-// // 	var cropInstances []models.Crop
-// // 	if err := cursor.All(ctx, &cropInstances); err != nil || len(cropInstances) == 0 {
-// // 		utils.RespondWithJSON(w, http.StatusNotFound, utils.M{"success": false, "message": "Crop not found"})
-// // 		return
-// // 	}
-
-// // 	// Extract farmIds
-// // 	farmIDs := make([]primitive.ObjectID, 0)
-// // 	for _, crop := range cropInstances {
-// // 		farmIDs = append(farmIDs, crop.FarmID)
-// // 	}
-
-// // 	// Get farms by those IDs
-// // 	filter := bson.M{"_id": bson.M{"$in": farmIDs}}
-// // 	cursor, err = db.FarmsCollection.Find(ctx, filter)
-// // 	if err != nil {
-// // 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to fetch farms"})
-// // 		return
-// // 	}
-// // 	defer cursor.Close(ctx)
-
-// // 	var farms []models.Farm
-// // 	if err = cursor.All(ctx, &farms); err != nil {
-// // 		utils.RespondWithJSON(w, http.StatusInternalServerError, utils.M{"success": false, "message": "Failed to decode farms"})
-// // 		return
-// // 	}
-
-// // 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true, "farms": farms})
-// // }
 
 func GetPaginatedFarms(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

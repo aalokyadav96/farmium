@@ -146,8 +146,10 @@ func createItem(w http.ResponseWriter, r *http.Request, itemType string) {
 	}
 
 	item.ID = res.InsertedID.(primitive.ObjectID)
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(item)
 }
+
 func UpdateProduct(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	updateItem(w, r, ps, "product")
 }
@@ -170,10 +172,11 @@ func updateItem(w http.ResponseWriter, r *http.Request, ps httprouter.Params, it
 		return
 	}
 
+	item.Type = itemType
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	item.Type = itemType
 	update := bson.M{"$set": item}
 
 	_, err = db.ProductCollection.UpdateByID(ctx, objID, update)
@@ -182,9 +185,10 @@ func updateItem(w http.ResponseWriter, r *http.Request, ps httprouter.Params, it
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "updated"})
 }
+
 func DeleteProduct(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	deleteItem(w, r, ps)
 }

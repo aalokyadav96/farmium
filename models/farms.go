@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -106,7 +107,24 @@ type CropCatalogueItem struct {
 	PriceRange []int  `json:"priceRange,omitempty"`
 }
 
-//	type Product struct {
+// //	type Product struct {
+// //		ID          string  `json:"id" bson:"_id,omitempty"`
+// //		Name        string  `json:"name" bson:"name"`
+// //		Price       float64 `json:"price" bson:"price"`
+// //		Description string  `json:"description" bson:"description"`
+// //		ImageURL    string  `json:"imageUrl" bson:"imageUrl"`
+// //	}
+// type Product struct {
+// 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+// 	Name        string             `bson:"name" json:"name"`
+// 	Description string             `bson:"description" json:"description"`
+// 	Price       float64            `bson:"price" json:"price"`
+// 	ImageURL    string             `bson:"imageUrl" json:"imageUrl"`
+// 	Category    string             `bson:"category" json:"category"`
+// 	Type        string             `bson:"type" json:"type"` // "product" or "tool"
+// }
+
+//	type Tool struct {
 //		ID          string  `json:"id" bson:"_id,omitempty"`
 //		Name        string  `json:"name" bson:"name"`
 //		Price       float64 `json:"price" bson:"price"`
@@ -114,19 +132,59 @@ type CropCatalogueItem struct {
 //		ImageURL    string  `json:"imageUrl" bson:"imageUrl"`
 //	}
 type Product struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Name        string             `bson:"name" json:"name"`
-	Description string             `bson:"description" json:"description"`
-	Price       float64            `bson:"price" json:"price"`
-	ImageURL    string             `bson:"imageUrl" json:"imageUrl"`
-	Category    string             `bson:"category" json:"category"`
-	Type        string             `bson:"type" json:"type"` // "product" or "tool"
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name          string             `bson:"name" json:"name"`
+	Description   string             `bson:"description" json:"description"`
+	Price         float64            `bson:"price" json:"price"`
+	ImageURL      string             `bson:"imageUrl" json:"imageUrl"`
+	Category      string             `bson:"category" json:"category"`
+	Type          string             `bson:"type" json:"type"`
+	Quantity      float64            `bson:"quantity" json:"quantity"`
+	Unit          string             `bson:"unit" json:"unit"`
+	SKU           string             `bson:"sku,omitempty" json:"sku,omitempty"`
+	AvailableFrom *SafeTime          `bson:"availableFrom,omitempty" json:"availableFrom,omitempty"`
+	AvailableTo   *SafeTime          `bson:"availableTo,omitempty" json:"availableTo,omitempty"`
+	Featured      bool               `bson:"featured,omitempty" json:"featured,omitempty"`
+}
+type SafeTime struct {
+	time.Time
 }
 
 type Tool struct {
-	ID          string  `json:"id" bson:"_id,omitempty"`
-	Name        string  `json:"name" bson:"name"`
-	Price       float64 `json:"price" bson:"price"`
-	Description string  `json:"description" bson:"description"`
-	ImageURL    string  `json:"imageUrl" bson:"imageUrl"`
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name          string             `bson:"name" json:"name"`
+	Price         float64            `bson:"price" json:"price"`
+	Description   string             `bson:"description" json:"description"`
+	ImageURL      string             `bson:"imageUrl" json:"imageUrl"`
+	Category      string             `bson:"category" json:"category"`
+	SKU           string             `bson:"sku,omitempty" json:"sku,omitempty"`
+	AvailableFrom *SafeTime          `bson:"availableFrom,omitempty" json:"availableFrom,omitempty"`
+	AvailableTo   *SafeTime          `bson:"availableTo,omitempty" json:"availableTo,omitempty"`
+	Quantity      float64            `bson:"quantity" json:"quantity"`
+	Unit          string             `bson:"unit" json:"unit"`
+	Featured      bool               `bson:"featured" json:"featured"`
+}
+
+// UnmarshalJSON tries RFC3339, then "2006-01-02"
+func (st *SafeTime) UnmarshalJSON(b []byte) error {
+	s := string(b)
+	// strip quotes
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		s = s[1 : len(s)-1]
+	}
+	if s == "" || s == "null" {
+		// leave st.Time zero or nil
+		return nil
+	}
+	// Try full RFC3339 first
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		st.Time = t
+		return nil
+	}
+	// Fallback to date-only
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		st.Time = t
+		return nil
+	}
+	return fmt.Errorf("invalid date format: %q", s)
 }

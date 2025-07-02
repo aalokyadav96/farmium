@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -36,7 +37,7 @@ func handleImageUpload(r *http.Request, fieldName, dir string) (string, error) {
 	}
 	defer file.Close()
 
-	filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), header.Filename)
+	filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), filepath.Ext(header.Filename))
 	fullDir := "./static/uploads/" + dir
 	path := fullDir + "/" + filename
 	os.MkdirAll(fullDir, os.ModePerm)

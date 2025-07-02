@@ -15,5 +15,7 @@ var (
 )
 
 type ContextKey string
+type ParamKey string
 
 const UserIDKey ContextKey = "userId"
+const ParamIDKey ParamKey = "params"

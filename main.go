@@ -65,8 +65,14 @@ func setupRouter(rateLimiter *ratelim.RateLimiter, hub *newchat.Hub) http.Handle
 	routes.AddSuggestionsRoutes(router)
 
 	// CORS setup (adjust AllowedOrigins in production)
+	allowedOrigins := []string{os.Getenv("ALLOWED_ORIGIN")}
+	if os.Getenv("ENV") == "development" {
+		allowedOrigins = []string{"*"}
+	}
+
+	// CORS setup (adjust AllowedOrigins in production)
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"}, // Consider specific origins in production
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,

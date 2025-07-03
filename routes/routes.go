@@ -138,7 +138,6 @@ func RegisterFarmRoutes(router *httprouter.Router) {
 }
 
 func AddSuggestionsRoutes(router *httprouter.Router) {
-	router.GET("/api/suggestions/places/nearby", ratelim.RateLimit(suggestions.GetNearbyPlaces))
 	router.GET("/api/suggestions/follow", ratelim.RateLimit(middleware.Authenticate(suggestions.SuggestFollowers)))
 }
 

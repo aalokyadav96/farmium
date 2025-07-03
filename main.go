@@ -65,7 +65,7 @@ func setupRouter(rateLimiter *ratelim.RateLimiter, hub *newchat.Hub) http.Handle
 
 	// CORS setup (adjust AllowedOrigins in production)
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://farmium.netlify.app"}, // Consider specific origins in production
+		AllowedOrigins:   []string{"*"}, // Consider specific origins in production
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,

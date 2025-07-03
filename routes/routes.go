@@ -1,12 +1,10 @@
 package routes
 
 import (
-	"naevis/activity"
 	"naevis/auth"
 	"naevis/cart"
 	"naevis/chats"
 	"naevis/comments"
-	"naevis/discord"
 	"naevis/farms"
 	"naevis/home"
 	"naevis/middleware"
@@ -15,11 +13,11 @@ import (
 	"naevis/ratelim"
 	"naevis/reports"
 	"naevis/reviews"
-	"naevis/settings"
+	"naevis/search"
 	"naevis/suggestions"
-	"naevis/userdata"
 	"naevis/utils"
 	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -38,30 +36,6 @@ func AddStaticRoutes(router *httprouter.Router) {
 	router.ServeFiles("/static/chatpic/*filepath", http.Dir("static/chatpic"))
 	router.ServeFiles("/static/newchatpic/*filepath", http.Dir("static/newchatpic"))
 	router.ServeFiles("/static/threadpic/*filepath", http.Dir("static/threadpic"))
-}
-
-func AddActivityRoutes(router *httprouter.Router) {
-	router.POST("/api/activity/log", ratelim.RateLimit(middleware.Authenticate(activity.LogActivities)))
-	router.GET("/api/activity/get", middleware.Authenticate(activity.GetActivityFeed))
-
-}
-
-func AddDiscordRoutes(router *httprouter.Router) {
-	router.GET("/api/merechats/all", middleware.Authenticate(discord.GetUserChats))
-	router.POST("/api/merechats/start", middleware.Authenticate(discord.StartNewChat))
-	router.GET("/api/merechats/chat/:chatId", middleware.Authenticate(discord.GetChatByID))
-	router.GET("/api/merechats/chat/:chatId/messages", middleware.Authenticate(discord.GetChatMessages))
-	router.POST("/api/merechats/chat/:chatId/message", middleware.Authenticate(discord.SendMessageREST))
-	router.PATCH("/api/meremessages/:messageId", middleware.Authenticate(discord.EditMessage))
-	router.DELETE("/api/meremessages/:messageId", middleware.Authenticate(discord.DeleteMessage))
-	router.GET("/ws/merechat", middleware.Authenticate(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		discord.HandleWebSocket(w, r, httprouter.Params{{Key: "userId", Value: utils.GetUserIDFromRequest(r)}})
-	}))
-	router.POST("/api/merechats/chat/:chatId/upload", middleware.Authenticate(discord.UploadAttachment))
-	router.GET("/api/merechats/chat/:chatId/search", middleware.Authenticate(discord.SearchMessages))
-	router.GET("/api/meremessages/unread-count", middleware.Authenticate(discord.GetUnreadCount))
-	router.POST("/api/meremessages/:messageId/read", middleware.Authenticate(discord.MarkAsRead))
-
 }
 
 func AddNewChatRoutes(router *httprouter.Router, hub *newchat.Hub) {
@@ -160,11 +134,11 @@ func RegisterFarmRoutes(router *httprouter.Router) {
 	router.PUT("/api/farm/tool/:id", farms.UpdateTool)
 	router.DELETE("/api/farm/tool/:id", farms.DeleteTool)
 
+	router.POST("/api/upload/images", utils.UploadImages)
 }
 
 func AddSuggestionsRoutes(router *httprouter.Router) {
 	router.GET("/api/suggestions/places/nearby", ratelim.RateLimit(suggestions.GetNearbyPlaces))
-	router.GET("/api/suggestions/places", ratelim.RateLimit(suggestions.SuggestionsHandler))
 	router.GET("/api/suggestions/follow", ratelim.RateLimit(middleware.Authenticate(suggestions.SuggestFollowers)))
 }
 
@@ -184,9 +158,6 @@ func AddProfileRoutes(router *httprouter.Router) {
 	router.DELETE("/api/profile/delete", middleware.Authenticate(profile.DeleteProfile))
 
 	router.GET("/api/user/:username", ratelim.RateLimit(profile.GetUserProfile))
-	router.GET("/api/user/:username/data", ratelim.RateLimit(middleware.Authenticate(userdata.GetUserProfileData)))
-	router.GET("/api/user/:username/udata", ratelim.RateLimit(middleware.Authenticate(userdata.GetOtherUserProfileData)))
-
 	router.PUT("/api/follows/:id", ratelim.RateLimit(middleware.Authenticate(profile.ToggleFollow)))
 	router.DELETE("/api/follows/:id", ratelim.RateLimit(middleware.Authenticate(profile.ToggleUnFollow)))
 	router.GET("/api/follows/:id/status", ratelim.RateLimit(middleware.Authenticate(profile.DoesFollow)))
@@ -195,9 +166,27 @@ func AddProfileRoutes(router *httprouter.Router) {
 
 }
 
-func AddSettingsRoutes(router *httprouter.Router) {
-	router.GET("/api/settings/init/:userid", middleware.Authenticate(settings.InitUserSettings))
-	// router.GET("/api/settings/setting/:type", getUserSettings)
-	router.GET("/api/settings/all", ratelim.RateLimit(middleware.Authenticate(settings.GetUserSettings)))
-	router.PUT("/api/settings/setting/:type", ratelim.RateLimit(middleware.Authenticate(settings.UpdateUserSetting)))
+func AddUtilityRoutes(router *httprouter.Router, rateLimiter *ratelim.RateLimiter) {
+	router.GET("/api/csrf", rateLimiter.Limit(middleware.Authenticate(utils.CSRF)))
+}
+
+func AddSearchRoutes(router *httprouter.Router) {
+	router.GET("/api/ac", search.Autocompleter)
+	router.GET("/api/search/:entityType", ratelim.RateLimit(search.SearchHandler))
+	router.POST("/emitted", search.EventHandler)
+}
+
+func AddMiscRoutes(router *httprouter.Router) {
+	// Example Routes
+	// router.GET("/", ratelim.RateLimit(wrapHandler(proxyWithCircuitBreaker("frontend-service"))))
+
+	// router.GET("/api/search/:entityType", ratelim.RateLimit(searchEvents))
+
+	// router.POST("/api/check-file", rateLimiter.Limit(filecheck.CheckFileExists))
+	// router.POST("/api/upload", rateLimiter.Limit(filecheck.UploadFile))
+	// router.POST("/api/feed/remhash", rateLimiter.Limit(filecheck.RemoveUserFile))
+
+	// router.POST("/agi/home_feed_section", ratelim.RateLimit(middleware.Authenticate(agi.GetHomeFeed)))
+	// router.GET("/resize/:folder/*filename", cdn.ServeStatic)
+
 }

@@ -9,7 +9,6 @@ import (
 	"naevis/globals"
 	"naevis/mq"
 	"naevis/structs"
-	"naevis/userdata"
 	"naevis/utils"
 	"net/http"
 	"strconv"
@@ -128,8 +127,6 @@ func AddReview(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	userdata.SetUserData("review", review.ReviewID, userId, entityType, entityId)
-
 	m := mq.Index{EntityType: "review", EntityId: review.ReviewID, Method: "POST", ItemId: entityId, ItemType: entityType}
 	go mq.Emit("review-added", m)
 
@@ -200,8 +197,6 @@ func DeleteReview(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		http.Error(w, fmt.Sprintf("Failed to delete review: %v", err), http.StatusInternalServerError)
 		return
 	}
-
-	userdata.DelUserData("review", reviewId, userId)
 
 	m := mq.Index{EntityType: "review", EntityId: reviewId, Method: "DELETE", ItemId: review.EntityID, ItemType: review.EntityType}
 	go mq.Emit("review-deleted", m)

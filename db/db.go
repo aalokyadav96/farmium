@@ -34,6 +34,7 @@ var (
 	SlotCollection              *mongo.Collection
 	BookingsCollection          *mongo.Collection
 	PostsCollection             *mongo.Collection
+	BlogPostsCollection         *mongo.Collection
 	FilesCollection             *mongo.Collection
 	MerchCollection             *mongo.Collection
 	MenuCollection              *mongo.Collection
@@ -71,6 +72,7 @@ func init() {
 	ArtistsCollection = Client.Database("eventdb").Collection("artists")
 	BaitoCollection = Client.Database("eventdb").Collection("baito")
 	BaitoApplicationsCollection = Client.Database("eventdb").Collection("baitoapply")
+	BlogPostsCollection = Client.Database("eventdb").Collection("bposts")
 	BookingsCollection = Client.Database("eventdb").Collection("bookings")
 	BehindTheScenesCollection = Client.Database("eventdb").Collection("bts")
 	CartCollection = Client.Database("eventdb").Collection("cart")

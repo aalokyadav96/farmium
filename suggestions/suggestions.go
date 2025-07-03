@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"naevis/autocom"
 	"naevis/db"
 	"naevis/globals"
 	"naevis/rdx"
@@ -118,26 +117,6 @@ func GetPlaceSuggestions(ctx context.Context, query string) ([]structs.Suggestio
 	}
 
 	return suggestions, nil
-}
-
-func SuggestionsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	query := r.URL.Query().Get("query")
-	if query == "" {
-		http.Error(w, "Query is required", http.StatusBadRequest)
-		return
-	}
-
-	// ctx := context.Background()
-	// suggestions, err := GetPlaceSuggestions(ctx, query)
-	suggestions, err := autocom.SearchPlaceAutocorrect(rdx.Conn, query, 10)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error fetching suggestions: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(suggestions)
 }
 
 func GetNearbyPlaces(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

@@ -136,7 +136,7 @@ type Product struct {
 	Name          string             `bson:"name" json:"name"`
 	Description   string             `bson:"description" json:"description"`
 	Price         float64            `bson:"price" json:"price"`
-	ImageURL      string             `bson:"imageUrl" json:"imageUrl"`
+	ImageURLs     []string           `bson:"imageUrls" json:"imageUrls"`
 	Category      string             `bson:"category" json:"category"`
 	Type          string             `bson:"type" json:"type"`
 	Quantity      float64            `bson:"quantity" json:"quantity"`

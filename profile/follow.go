@@ -10,7 +10,6 @@ import (
 	"naevis/middleware"
 	"naevis/mq"
 	"naevis/structs"
-	"naevis/userdata"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -56,8 +55,6 @@ func HandleFollowAction(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 		http.Error(w, "Failed to update follow relationship", http.StatusInternalServerError)
 		return
 	}
-
-	userdata.SetUserData(action, targetUserID, currentUserID, "profile", targetUserID)
 
 	response := map[string]any{
 		"isFollowing": action == "follow",

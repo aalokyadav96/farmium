@@ -48,31 +48,24 @@ func setupRouter(rateLimiter *ratelim.RateLimiter, hub *newchat.Hub) http.Handle
 	router := httprouter.New()
 	router.GET("/health", Index)
 
-	routes.AddActivityRoutes(router)
 	routes.AddAuthRoutes(router)
 	routes.AddCartRoutes(router)
 	routes.AddChatRoutes(router)
 	routes.AddCommentsRoutes(router)
-	routes.AddDiscordRoutes(router)
 	routes.RegisterFarmRoutes(router)
 	routes.AddHomeRoutes(router)
 	routes.AddNewChatRoutes(router, hub)
 	routes.AddProfileRoutes(router)
 	routes.AddReportRoutes(router)
 	routes.AddReviewsRoutes(router)
-	routes.AddSettingsRoutes(router)
+	routes.AddSearchRoutes(router)
 	routes.AddStaticRoutes(router)
 	routes.AddSuggestionsRoutes(router)
-
-	// CORS setup (adjust AllowedOrigins in production)
-	allowedOrigins := []string{os.Getenv("ALLOWED_ORIGIN")}
-	if os.Getenv("ENV") == "development" {
-		allowedOrigins = []string{"*"}
-	}
+	routes.AddUtilityRoutes(router, rateLimiter)
 
 	// CORS setup (adjust AllowedOrigins in production)
 	c := cors.New(cors.Options{
-		AllowedOrigins:   allowedOrigins,
+		AllowedOrigins:   []string{"https://farmium.netlify.app"}, // Consider specific origins in production
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -87,7 +80,7 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found. Continuing with system environment variables.")
 	}
-
+	var PORT = os.Getenv("PORT")
 	hub := newchat.NewHub()
 	go hub.Run()
 	// go newchat.CleanupOrphans()
@@ -97,7 +90,7 @@ func main() {
 	// handler := setupRouter(rateLimiter)
 
 	server := &http.Server{
-		Addr:              ":4000",
+		Addr:              PORT,
 		Handler:           handler,
 		ReadTimeout:       7 * time.Second,
 		WriteTimeout:      15 * time.Second,
@@ -113,9 +106,9 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Println("🚀 Server started on port 4000")
+		log.Println("🚀 Server started on port ", PORT)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Could not listen on port 4000: %v", err)
+			log.Fatalf("❌ Could not listen on port %s: %v", PORT, err)
 		}
 	}()
 

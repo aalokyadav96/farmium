@@ -70,6 +70,7 @@ func setupRouter(rateLimiter *ratelim.RateLimiter, hub *newchat.Hub) http.Handle
 	routes.AddHomeRoutes(router)
 	routes.AddNewChatRoutes(router, hub)
 	routes.AddProfileRoutes(router)
+	routes.AddRecipeRoutes(router)
 	routes.AddReportRoutes(router)
 	routes.AddReviewsRoutes(router)
 	routes.AddSearchRoutes(router)

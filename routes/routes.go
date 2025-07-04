@@ -11,6 +11,7 @@ import (
 	"naevis/newchat"
 	"naevis/profile"
 	"naevis/ratelim"
+	"naevis/recipes"
 	"naevis/reports"
 	"naevis/reviews"
 	"naevis/search"
@@ -136,6 +137,15 @@ func RegisterFarmRoutes(router *httprouter.Router) {
 	router.DELETE("/api/farm/tool/:id", farms.DeleteTool)
 
 	router.POST("/api/upload/images", utils.UploadImages)
+}
+
+func AddRecipeRoutes(router *httprouter.Router) {
+	router.GET("/api/recipes/tags", middleware.Authenticate(recipes.GetRecipeTags))
+	router.GET("/api/recipes", middleware.Authenticate(recipes.GetRecipes))
+	router.GET("/api/recipes/recipe/:id", middleware.Authenticate(recipes.GetRecipe))
+	router.POST("/api/recipes", middleware.Authenticate(recipes.CreateRecipe))
+	router.PUT("/api/recipes/recipe/:id", middleware.Authenticate(recipes.UpdateRecipe))
+	router.DELETE("/api/recipes/recipe/:id", middleware.Authenticate(recipes.DeleteRecipe))
 }
 
 func AddSuggestionsRoutes(router *httprouter.Router) {

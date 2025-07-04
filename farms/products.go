@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"naevis/db"
 	"naevis/models"
+	"naevis/utils"
 	"net/http"
 	"strconv"
 	"time"
@@ -129,12 +130,63 @@ func CreateTool(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func createItem(w http.ResponseWriter, r *http.Request, itemType string) {
-	var item models.Product
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	err := r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
-	item.Type = itemType
+
+	item := models.Product{
+		Name:        r.FormValue("name"),
+		Description: r.FormValue("description"),
+		Category:    r.FormValue("category"),
+		SKU:         r.FormValue("sku"),
+		Unit:        r.FormValue("unit"),
+		Type:        itemType,
+		Featured:    r.FormValue("featured") == "true" || r.FormValue("featured") == "on",
+	}
+
+	if price, err := strconv.ParseFloat(r.FormValue("price"), 64); err == nil {
+		item.Price = price
+	}
+
+	if quantity, err := strconv.ParseFloat(r.FormValue("quantity"), 64); err == nil {
+		item.Quantity = quantity
+	}
+
+	if date := r.FormValue("availableFrom"); date != "" {
+		if t, err := time.Parse("2006-01-02", date); err == nil {
+			item.AvailableFrom = &models.SafeTime{Time: t}
+		}
+	}
+
+	if date := r.FormValue("availableTo"); date != "" {
+		if t, err := time.Parse("2006-01-02", date); err == nil {
+			item.AvailableTo = &models.SafeTime{Time: t}
+		}
+	}
+
+	// Handle image uploads
+	formImages := r.MultipartForm.File["images"]
+	savedURLs := make([]string, 0, len(formImages))
+
+	for _, fh := range formImages {
+		file, err := fh.Open()
+		if err != nil {
+			continue
+		}
+		defer file.Close()
+
+		filename, err := utils.SaveFile(file, fh, "./uploads")
+		if err != nil {
+			continue
+		}
+
+		// You can adjust this to include domain/prefix if needed
+		savedURLs = append(savedURLs, filename)
+	}
+
+	item.ImageURLs = savedURLs
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -157,7 +209,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 func UpdateTool(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	updateItem(w, r, ps, "tool")
 }
-
 func updateItem(w http.ResponseWriter, r *http.Request, ps httprouter.Params, itemType string) {
 	idParam := ps.ByName("id")
 	objID, err := primitive.ObjectIDFromHex(idParam)
@@ -166,19 +217,70 @@ func updateItem(w http.ResponseWriter, r *http.Request, ps httprouter.Params, it
 		return
 	}
 
-	var item models.Product
-	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	err = r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
 
-	item.Type = itemType
+	item := models.Product{
+		Name:        r.FormValue("name"),
+		Description: r.FormValue("description"),
+		Category:    r.FormValue("category"),
+		SKU:         r.FormValue("sku"),
+		Unit:        r.FormValue("unit"),
+		Type:        itemType,
+		Featured:    r.FormValue("featured") == "true" || r.FormValue("featured") == "on",
+	}
+
+	if price, err := strconv.ParseFloat(r.FormValue("price"), 64); err == nil {
+		item.Price = price
+	}
+
+	if quantity, err := strconv.ParseFloat(r.FormValue("quantity"), 64); err == nil {
+		item.Quantity = quantity
+	}
+
+	if date := r.FormValue("availableFrom"); date != "" {
+		if t, err := time.Parse("2006-01-02", date); err == nil {
+			item.AvailableFrom = &models.SafeTime{Time: t}
+		}
+	}
+
+	if date := r.FormValue("availableTo"); date != "" {
+		if t, err := time.Parse("2006-01-02", date); err == nil {
+			item.AvailableTo = &models.SafeTime{Time: t}
+		}
+	}
+
+	// Handle optional new images
+	formImages := r.MultipartForm.File["images"]
+	savedURLs := make([]string, 0, len(formImages))
+
+	for _, fh := range formImages {
+		file, err := fh.Open()
+		if err != nil {
+			continue
+		}
+		defer file.Close()
+
+		filename, err := utils.SaveFile(file, fh, "./uploads")
+		if err != nil {
+			continue
+		}
+
+		savedURLs = append(savedURLs, filename)
+	}
+
+	// Only update images if any were uploaded
+	if len(savedURLs) > 0 {
+		item.ImageURLs = savedURLs
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	update := bson.M{"$set": item}
-
 	_, err = db.ProductCollection.UpdateByID(ctx, objID, update)
 	if err != nil {
 		http.Error(w, "Failed to update item", http.StatusInternalServerError)

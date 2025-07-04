@@ -217,3 +217,38 @@ func deleteItem(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
+
+// GetItemCategories returns distinct categories from the items collection based on the type (product/tool)
+func GetItemCategories(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	itemType := r.URL.Query().Get("type")
+
+	var categories []string
+
+	switch itemType {
+	case "tool":
+		categories = []string{
+			"Cutting Tools",
+			"Irrigation Tools",
+			"Harvesting Tools",
+			"Hand Tools",
+			"Protective Gear",
+			"Fertilizer Applicators",
+		}
+	case "product":
+		fallthrough
+	default:
+		categories = []string{
+			"Spices",
+			"Pickles",
+			"Flour",
+			"Oils",
+			"Honey",
+			"Tea & Coffee",
+			"Dry Fruits",
+			"Natural Sweeteners",
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(categories)
+}

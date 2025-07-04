@@ -125,6 +125,7 @@ func RegisterFarmRoutes(router *httprouter.Router) {
 	router.GET("/api/farm/items", farms.GetItems)
 	router.GET("/api/farm/products", farms.GetProducts)
 	router.GET("/api/farm/tools", farms.GetTools)
+	router.GET("/api/farm/items/categories", farms.GetItemCategories)
 
 	router.POST("/api/farm/product", farms.CreateProduct)
 	router.PUT("/api/farm/product/:id", farms.UpdateProduct)

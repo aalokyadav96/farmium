@@ -26,6 +26,7 @@ var (
 	ChatsCollection      *mongo.Collection
 	MessagesCollection   *mongo.Collection
 	ReportsCollection    *mongo.Collection
+	RecipeCollection     *mongo.Collection
 	Client               *mongo.Client
 )
 
@@ -57,6 +58,7 @@ func init() {
 	PostsCollection = Client.Database("eventdb").Collection("posts")
 	ProductCollection = Client.Database("eventdb").Collection("products")
 	ReportsCollection = Client.Database("eventdb").Collection("reports")
+	RecipeCollection = Client.Database("eventdb").Collection("recipes")
 	ReviewsCollection = Client.Database("eventdb").Collection("reviews")
 	UserCollection = Client.Database("eventdb").Collection("users")
 }

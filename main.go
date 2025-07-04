@@ -49,6 +49,7 @@ var (
 	ChatsCollection      *mongo.Collection
 	MessagesCollection   *mongo.Collection
 	ReportsCollection    *mongo.Collection
+	RecipeCollection     *mongo.Collection
 	Client               *mongo.Client
 )
 
@@ -142,6 +143,7 @@ func main() {
 	db.ReportsCollection = Client.Database("eventdb").Collection("reports")
 	db.ReviewsCollection = Client.Database("eventdb").Collection("reviews")
 	db.UserCollection = Client.Database("eventdb").Collection("users")
+	RecipeCollection = Client.Database("eventdb").Collection("recipes")
 	db.Client = Client
 
 	// Assign global collections for this package (if needed)
@@ -161,6 +163,7 @@ func main() {
 	ReportsCollection = db.ReportsCollection
 	ReviewsCollection = db.ReviewsCollection
 	UserCollection = db.UserCollection
+	RecipeCollection = db.RecipeCollection
 
 	hub := newchat.NewHub()
 	go hub.Run()

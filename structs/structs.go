@@ -12,7 +12,7 @@ type User struct {
 	Username       string    `json:"username" bson:"username"`
 	Email          string    `json:"email" bson:"email"`
 	Password       string    `json:"-" bson:"password"`
-	Role           string    `json:"role" bson:"role"`
+	Role           []string  `json:"role" bson:"role"`
 	Name           string    `json:"name,omitempty" bson:"name,omitempty"`
 	CreatedAt      time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at" bson:"updated_at"`
@@ -417,6 +417,38 @@ type Owner struct {
 	Password string             `json:"password" bson:"password"`
 }
 
+//	type Event struct {
+//		EventID          string    `json:"eventid" bson:"eventid"`
+//		Title            string    `json:"title" bson:"title"`
+//		Description      string    `json:"description" bson:"description"`
+//		Date             time.Time `json:"date" bson:"date"`
+//		PlaceID          string    `json:"placeid" bson:"placeid"`
+//		PlaceName        string    `json:"placename" bson:"placename"`
+//		Location         string    `json:"location" bson:"location"`
+//		CreatorID        string    `json:"creatorid" bson:"creatorid"`
+//		Tickets          []Ticket  `json:"tickets" bson:"tickets"`
+//		Merch            []Merch   `json:"merch" bson:"merch"`
+//		StartDateTime    time.Time `json:"start_date_time" bson:"start_date_time"`
+//		EndDateTime      time.Time `json:"end_date_time" bson:"end_date_time"`
+//		Category         string    `json:"category" bson:"category"`
+//		BannerImage      string    `json:"banner_image" bson:"banner_image"`
+//		SeatingPlanImage string    `json:"seatingplan" bson:"seatingplan"`
+//		WebsiteURL       string    `json:"website_url" bson:"website_url"`
+//		Status           string    `json:"status" bson:"status"`
+//		Tags             []string  `json:"tags" bson:"tags"`
+//		CreatedAt        time.Time `json:"created_at" bson:"created_at"`
+//		UpdatedAt        time.Time `json:"updated_at" bson:"updated_at"`
+//		FAQs             []FAQ     `json:"faqs" bson:"faqs"` // Added FAQs
+//		// Place             string            `json:"place" bson:"place"`
+//		OrganizerName     string            `json:"organizer_name" bson:"organizer_name"`
+//		OrganizerContact  string            `json:"organizer_contact" bson:"organizer_contact"`
+//		CustomFields      map[string]any    `json:"custom_fields" bson:"custom_fields"`
+//		SocialMediaLinks  map[string]string `json:"social_links" bson:"social_links"` // Changed to a map for better structure
+//		AccessibilityInfo string            `json:"accessibility_info" bson:"accessibility_info"`
+//		Artists           []string          `bson:"artists,omitempty" json:"artists,omitempty"` // ✅ Add this
+//		Published         string            `bson:"published,omitempty" json:"published,omitempty"`
+//	}
+
 type Event struct {
 	EventID          string    `json:"eventid" bson:"eventid"`
 	Title            string    `json:"title" bson:"title"`
@@ -438,15 +470,18 @@ type Event struct {
 	Tags             []string  `json:"tags" bson:"tags"`
 	CreatedAt        time.Time `json:"created_at" bson:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at" bson:"updated_at"`
-	FAQs             []FAQ     `json:"faqs" bson:"faqs"` // Added FAQs
-	// Place             string            `json:"place" bson:"place"`
-	OrganizerName     string            `json:"organizer_name" bson:"organizer_name"`
-	OrganizerContact  string            `json:"organizer_contact" bson:"organizer_contact"`
-	CustomFields      map[string]any    `json:"custom_fields" bson:"custom_fields"`
-	SocialMediaLinks  map[string]string `json:"social_links" bson:"social_links"` // Changed to a map for better structure
-	AccessibilityInfo string            `json:"accessibility_info" bson:"accessibility_info"`
-	Artists           []string          `bson:"artists,omitempty" json:"artists,omitempty"` // ✅ Add this
-	Published         string            `bson:"published,omitempty" json:"published,omitempty"`
+	FAQs             []FAQ     `json:"faqs" bson:"faqs"`
+	OrganizerName    string    `json:"organizer_name" bson:"organizer_name"`
+	OrganizerContact string    `json:"organizer_contact" bson:"organizer_contact"`
+	// CustomFields      []SocialMediaLinks `json:"custom_fields" bson:"custom_fields"`
+	// SocialLinks       []SocialMediaLinks `json:"social_links" bson:"social_links"`
+	// AccessibilityInfo string             `json:"accessibility_info" bson:"accessibility_info"`
+	Artists   []string `json:"artists,omitempty" bson:"artists,omitempty"`
+	Published string   `json:"published,omitempty" bson:"published,omitempty"`
+
+	// Computed fields for frontend filters
+	Prices   []float64 `json:"prices,omitempty" bson:"-"`
+	Currency string    `json:"currency,omitempty" bson:"-"`
 }
 
 // type FAQ struct {
@@ -458,6 +493,11 @@ type Event struct {
 type FAQ struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
+}
+
+type SocialMediaLinks struct {
+	Title string `json:"title"`
+	Url   string `json:"Url"`
 }
 
 type PurchasedTicket struct {

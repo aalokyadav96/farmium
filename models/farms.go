@@ -107,6 +107,17 @@ type CropCatalogueItem struct {
 	PriceRange []int  `json:"priceRange,omitempty"`
 }
 
+type CropListing struct {
+	FarmID         string   `json:"farmId"`
+	FarmName       string   `json:"farmName"`
+	Location       string   `json:"location"`
+	Breed          string   `json:"breed"`
+	PricePerKg     float64  `json:"pricePerKg"`
+	AvailableQtyKg int      `json:"availableQtyKg,omitempty"`
+	HarvestDate    string   `json:"harvestDate,omitempty"` // ISO string
+	Tags           []string `json:"tags,omitempty"`
+}
+
 // //	type Product struct {
 // //		ID          string  `json:"id" bson:"_id,omitempty"`
 // //		Name        string  `json:"name" bson:"name"`
@@ -146,6 +157,7 @@ type Product struct {
 	AvailableTo   *SafeTime          `bson:"availableTo,omitempty" json:"availableTo,omitempty"`
 	Featured      bool               `bson:"featured,omitempty" json:"featured,omitempty"`
 }
+
 type SafeTime struct {
 	time.Time
 }

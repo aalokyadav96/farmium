@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"naevis/db"
 	"naevis/newchat"
 	"naevis/ratelim"
 	"naevis/routes"
@@ -23,16 +22,26 @@ import (
 )
 
 // Security headers middleware
+
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// XSS, content sniffing, framing
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
+		// HSTS (must be on HTTPS)
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+		// Referrer and permissions
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+		// Prevent caching
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
 		next.ServeHTTP(w, r)
 	})
 }
 
 var (
+	AnalyticsCollection  *mongo.Collection
 	CartCollection       *mongo.Collection
 	OrderCollection      *mongo.Collection
 	CatalogueCollection  *mongo.Collection
@@ -42,10 +51,11 @@ var (
 	CommentsCollection   *mongo.Collection
 	UserCollection       *mongo.Collection
 	ProductCollection    *mongo.Collection
+	UserDataCollection   *mongo.Collection
 	ReviewsCollection    *mongo.Collection
+	SettingsCollection   *mongo.Collection
 	FollowingsCollection *mongo.Collection
-	PostsCollection      *mongo.Collection
-	BlogPostsCollection  *mongo.Collection
+	ActivitiesCollection *mongo.Collection
 	ChatsCollection      *mongo.Collection
 	MessagesCollection   *mongo.Collection
 	ReportsCollection    *mongo.Collection
@@ -58,47 +68,50 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 // Set up all routes and middleware layers
-func setupRouter(rateLimiter *ratelim.RateLimiter, hub *newchat.Hub) http.Handler {
+func setupRouter(rateLimiter *ratelim.RateLimiter) *httprouter.Router {
 	router := httprouter.New()
 	router.GET("/health", Index)
 
+	routes.AddAdminRoutes(router)
 	routes.AddAuthRoutes(router)
 	routes.AddCartRoutes(router)
-	routes.AddChatRoutes(router)
 	routes.AddCommentsRoutes(router)
+	routes.AddDiscordRoutes(router)
 	routes.RegisterFarmRoutes(router)
 	routes.AddHomeRoutes(router)
-	routes.AddNewChatRoutes(router, hub)
 	routes.AddProfileRoutes(router)
 	routes.AddRecipeRoutes(router)
 	routes.AddReportRoutes(router)
 	routes.AddReviewsRoutes(router)
 	routes.AddSearchRoutes(router)
+	routes.AddSettingsRoutes(router)
 	routes.AddStaticRoutes(router)
 	routes.AddSuggestionsRoutes(router)
 	routes.AddUtilityRoutes(router, rateLimiter)
 
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
-		AllowCredentials: true,
-	})
-
-	return loggingMiddleware(securityHeaders(c.Handler(router)))
+	return router
 }
 
 // Middleware: Simple request logging
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[%s] %s %s", r.Method, r.RequestURI, r.RemoteAddr)
+		start := time.Now()
 		next.ServeHTTP(w, r)
+		duration := time.Since(start)
+		log.Printf("%s %s from %s â€“ %v", r.Method, r.RequestURI, r.RemoteAddr, duration)
 	})
 }
 
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading .env file")
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = ":4000"
+	} else if port[0] != ':' {
+		port = ":" + port
 	}
 
 	mongoURI := os.Getenv("MONGODB_URI")
@@ -128,52 +141,50 @@ func main() {
 	fmt.Println("Pinged your deployment. You successfully connected to MongoDB!")
 
 	// Initialize all collections
-	db.BlogPostsCollection = Client.Database("eventdb").Collection("bposts")
-	db.CartCollection = Client.Database("eventdb").Collection("cart")
-	db.CatalogueCollection = Client.Database("eventdb").Collection("catalogue")
-	db.ChatsCollection = Client.Database("eventdb").Collection("chats")
-	db.CommentsCollection = Client.Database("eventdb").Collection("comments")
-	db.CropsCollection = Client.Database("eventdb").Collection("crops")
-	db.FarmsCollection = Client.Database("eventdb").Collection("farms")
-	db.FollowingsCollection = Client.Database("eventdb").Collection("followings")
-	db.FarmOrdersCollection = Client.Database("eventdb").Collection("forders")
-	db.MessagesCollection = Client.Database("eventdb").Collection("messages")
-	db.OrderCollection = Client.Database("eventdb").Collection("orders")
-	db.PostsCollection = Client.Database("eventdb").Collection("posts")
-	db.ProductCollection = Client.Database("eventdb").Collection("products")
-	db.ReportsCollection = Client.Database("eventdb").Collection("reports")
-	db.ReviewsCollection = Client.Database("eventdb").Collection("reviews")
-	db.UserCollection = Client.Database("eventdb").Collection("users")
-	RecipeCollection = Client.Database("eventdb").Collection("recipes")
-	db.Client = Client
+	db := Client.Database("eventdb")
+	ActivitiesCollection = db.Collection("activities")
+	AnalyticsCollection = db.Collection("analytics")
+	CartCollection = db.Collection("cart")
+	CatalogueCollection = db.Collection("catalogue")
+	ChatsCollection = db.Collection("chats")
+	CommentsCollection = db.Collection("comments")
+	CropsCollection = db.Collection("crops")
+	FarmsCollection = db.Collection("farms")
+	FollowingsCollection = db.Collection("followings")
+	FarmOrdersCollection = db.Collection("forders")
+	MessagesCollection = db.Collection("messages")
+	OrderCollection = db.Collection("orders")
+	ProductCollection = db.Collection("products")
+	RecipeCollection = db.Collection("recipes")
+	ReportsCollection = db.Collection("reports")
+	ReviewsCollection = db.Collection("reviews")
+	SettingsCollection = db.Collection("settings")
+	UserDataCollection = db.Collection("userdata")
+	UserCollection = db.Collection("users")
 
-	// Assign global collections for this package (if needed)
-	BlogPostsCollection = db.BlogPostsCollection
-	CartCollection = db.CartCollection
-	CatalogueCollection = db.CatalogueCollection
-	ChatsCollection = db.ChatsCollection
-	CommentsCollection = db.CommentsCollection
-	CropsCollection = db.CropsCollection
-	FarmsCollection = db.FarmsCollection
-	FollowingsCollection = db.FollowingsCollection
-	FarmOrdersCollection = db.FarmOrdersCollection
-	MessagesCollection = db.MessagesCollection
-	OrderCollection = db.OrderCollection
-	PostsCollection = db.PostsCollection
-	ProductCollection = db.ProductCollection
-	ReportsCollection = db.ReportsCollection
-	ReviewsCollection = db.ReviewsCollection
-	UserCollection = db.UserCollection
-	RecipeCollection = db.RecipeCollection
+	// initialize rate limiter
+	rateLimiter := ratelim.NewRateLimiter()
 
+	// initialize chat hub
 	hub := newchat.NewHub()
 	go hub.Run()
 
-	rateLimiter := ratelim.NewRateLimiter()
-	handler := setupRouter(rateLimiter, hub)
+	router := setupRouter(rateLimiter)
+	routes.AddChatRoutes(router)         // existing chat routes without hub
+	routes.AddNewChatRoutes(router, hub) // newchat routes that need hub
+	// apply middleware: CORS â†’ security headers â†’ logging â†’ router
+
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // lock down in production
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}).Handler(router)
+
+	handler := loggingMiddleware(securityHeaders(corsHandler))
 
 	server := &http.Server{
-		Addr:              ":10000",
+		Addr:              port,
 		Handler:           handler,
 		ReadTimeout:       7 * time.Second,
 		WriteTimeout:      15 * time.Second,

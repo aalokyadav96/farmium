@@ -98,7 +98,6 @@ type Like struct {
 	EntityID   string             `bson:"entity_id"`   // e.g. post ID
 	CreatedAt  time.Time          `bson:"created_at"`
 }
-
 type Post struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"_id"`
 	Title       string             `bson:"title" json:"title"`
@@ -106,6 +105,7 @@ type Post struct {
 	Category    string             `bson:"category" json:"category"`
 	Subcategory string             `bson:"subcategory" json:"subcategory"`
 	ImagePaths  []string           `bson:"imagePaths" json:"imagePaths"`
+	ReferenceID *string            `bson:"referenceId,omitempty" json:"referenceId,omitempty"`
 	CreatedBy   string             `bson:"createdBy" json:"createdBy"`
 	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`

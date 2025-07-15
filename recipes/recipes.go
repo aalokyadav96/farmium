@@ -83,8 +83,28 @@ func GetRecipes(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	if len(recipes) == 0 {
+		recipes = []models.Recipe{}
+	}
+
 	json.NewEncoder(w).Encode(recipes)
 }
+
+// func GetRecipes(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// 	cursor, err := db.RecipeCollection.Find(context.TODO(), bson.M{})
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	defer cursor.Close(context.TODO())
+
+// 	var recipes []models.Recipe
+// 	if err = cursor.All(context.TODO(), &recipes); err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	json.NewEncoder(w).Encode(recipes)
+// }
 
 // Get one recipe
 func GetRecipe(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -95,6 +115,7 @@ func GetRecipe(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, "Recipe not found", http.StatusNotFound)
 		return
 	}
+
 	json.NewEncoder(w).Encode(recipe)
 }
 

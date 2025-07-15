@@ -66,3 +66,58 @@ func BuyCrop(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	utils.RespondWithJSON(w, http.StatusOK, utils.M{"success": true})
 }
+
+// func GetMyFarmOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {}
+
+// func GetIncomingFarmOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {}
+
+// POST /api/v1/farmorders/:id/accept
+// POST /api/v1/farmorders/:id/reject
+// POST /api/v1/farmorders/:id/deliver
+// POST /api/v1/farmorders/:id/markpaid
+// GET  /api/v1/farmorders/:id/receipt
+
+// GET /api/v1/farmorders/mine
+func GetMyFarmOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// TODO: Fetch orders placed by the current user to other farms
+}
+
+// GET /api/v1/farmorders/incoming
+func GetIncomingFarmOrders(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// TODO: Fetch orders received by the user's farm
+}
+
+// POST /api/v1/farmorders/:id/accept
+func AcceptOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	orderID := ps.ByName("id")
+	// TODO: Mark order as accepted
+	_ = orderID
+}
+
+// POST /api/v1/farmorders/:id/reject
+func RejectOrder(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	orderID := ps.ByName("id")
+	// TODO: Mark order as rejected
+	_ = orderID
+}
+
+// POST /api/v1/farmorders/:id/deliver
+func MarkOrderDelivered(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	orderID := ps.ByName("id")
+	// TODO: Update delivery status to "Delivered"
+	_ = orderID
+}
+
+// POST /api/v1/farmorders/:id/markpaid
+func MarkOrderPaid(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	orderID := ps.ByName("id")
+	// TODO: Update payment status to "Paid"
+	_ = orderID
+}
+
+// GET /api/v1/farmorders/:id/receipt
+func DownloadReceipt(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	orderID := ps.ByName("id")
+	// TODO: Generate and send back receipt (PDF or JSON, depending on implementation)
+	_ = orderID
+}

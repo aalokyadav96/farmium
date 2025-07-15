@@ -48,6 +48,7 @@ func AddToCart(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		"userId":   item.UserID,
 		"item":     item.Item,
 		"farm":     item.Farm,
+		"farmid":   item.FarmId,
 		"category": item.Category,
 	}
 	update := bson.M{

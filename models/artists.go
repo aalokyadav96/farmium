@@ -24,9 +24,10 @@ type Artist struct {
 }
 
 type BandMember struct {
-	Name string `bson:"name" json:"name"`
-	Role string `bson:"role,omitempty" json:"role,omitempty"`
-	DOB  string `bson:"dob,omitempty" json:"dob,omitempty"`
+	Name  string `bson:"name" json:"name"`
+	Role  string `bson:"role,omitempty" json:"role,omitempty"`
+	DOB   string `bson:"dob,omitempty" json:"dob,omitempty"`
+	Image string `bson:"image,omitempty" json:"image,omitempty"` // ✅ fixed bson tag
 }
 
 type Cartoon struct {

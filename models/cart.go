@@ -8,6 +8,7 @@ type CartItem struct {
 	Item     string    `json:"item" bson:"item"`
 	Unit     string    `json:"unit,omitempty" bson:"unit,omitempty"`
 	Farm     string    `json:"farm,omitempty" bson:"farm,omitempty"`
+	FarmId   string    `json:"farmid,omitempty" bson:"farmid,omitempty"`
 	Quantity int       `json:"quantity" bson:"quantity"`
 	Price    float64   `json:"price" bson:"price"`
 	AddedAt  time.Time `json:"added_at" bson:"added_at"`

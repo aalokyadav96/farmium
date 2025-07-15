@@ -10,6 +10,8 @@ import (
 )
 
 var (
+	// Your collections:
+	AnalyticsCollection  *mongo.Collection
 	CartCollection       *mongo.Collection
 	OrderCollection      *mongo.Collection
 	CatalogueCollection  *mongo.Collection
@@ -19,15 +21,17 @@ var (
 	CommentsCollection   *mongo.Collection
 	UserCollection       *mongo.Collection
 	ProductCollection    *mongo.Collection
+	UserDataCollection   *mongo.Collection
 	ReviewsCollection    *mongo.Collection
+	SettingsCollection   *mongo.Collection
 	FollowingsCollection *mongo.Collection
-	PostsCollection      *mongo.Collection
-	BlogPostsCollection  *mongo.Collection
+	ActivitiesCollection *mongo.Collection
 	ChatsCollection      *mongo.Collection
 	MessagesCollection   *mongo.Collection
 	ReportsCollection    *mongo.Collection
 	RecipeCollection     *mongo.Collection
-	Client               *mongo.Client
+
+	Client *mongo.Client
 )
 
 // Initialize MongoDB connection
@@ -44,23 +48,26 @@ func init() {
 	}
 
 	// CreateIndexes(Client)
-	BlogPostsCollection = Client.Database("eventdb").Collection("bposts")
-	CartCollection = Client.Database("eventdb").Collection("cart")
-	CatalogueCollection = Client.Database("eventdb").Collection("catalogue")
-	ChatsCollection = Client.Database("eventdb").Collection("chats")
-	CommentsCollection = Client.Database("eventdb").Collection("comments")
-	CropsCollection = Client.Database("eventdb").Collection("crops")
-	FarmsCollection = Client.Database("eventdb").Collection("farms")
-	FollowingsCollection = Client.Database("eventdb").Collection("followings")
-	FarmOrdersCollection = Client.Database("eventdb").Collection("forders")
-	MessagesCollection = Client.Database("eventdb").Collection("messages")
-	OrderCollection = Client.Database("eventdb").Collection("orders")
-	PostsCollection = Client.Database("eventdb").Collection("posts")
-	ProductCollection = Client.Database("eventdb").Collection("products")
-	ReportsCollection = Client.Database("eventdb").Collection("reports")
-	RecipeCollection = Client.Database("eventdb").Collection("recipes")
-	ReviewsCollection = Client.Database("eventdb").Collection("reviews")
-	UserCollection = Client.Database("eventdb").Collection("users")
+	db := Client.Database("eventdb")
+	ActivitiesCollection = db.Collection("activities")
+	AnalyticsCollection = db.Collection("analytics")
+	CartCollection = db.Collection("cart")
+	CatalogueCollection = db.Collection("catalogue")
+	ChatsCollection = db.Collection("chats")
+	CommentsCollection = db.Collection("comments")
+	CropsCollection = db.Collection("crops")
+	FarmsCollection = db.Collection("farms")
+	FollowingsCollection = db.Collection("followings")
+	FarmOrdersCollection = db.Collection("forders")
+	MessagesCollection = db.Collection("messages")
+	OrderCollection = db.Collection("orders")
+	ProductCollection = db.Collection("products")
+	RecipeCollection = db.Collection("recipes")
+	ReportsCollection = db.Collection("reports")
+	ReviewsCollection = db.Collection("reviews")
+	SettingsCollection = db.Collection("settings")
+	UserDataCollection = db.Collection("userdata")
+	UserCollection = db.Collection("users")
 }
 
 func OptionsFindLatest(limit int64) *options.FindOptions {

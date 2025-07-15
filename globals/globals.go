@@ -1,7 +1,13 @@
 package globals
 
 import (
+	"context"
+	"naevis/db"
+	"naevis/rdx"
 	"time"
+
+	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const (
@@ -15,7 +21,10 @@ var (
 )
 
 type ContextKey string
-type ParamKey string
 
 const UserIDKey ContextKey = "userId"
-const ParamIDKey ParamKey = "params"
+
+var CTX = context.Background()
+
+var RedisClient *redis.Client = rdx.Conn
+var MongoClient *mongo.Client = db.Client

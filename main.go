@@ -16,30 +16,25 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Security headers middleware
-
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// XSS, content sniffing, framing
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
-		// HSTS (must be on HTTPS)
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
-		// Referrer and permissions
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-		// Prevent caching
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
 		next.ServeHTTP(w, r)
 	})
 }
 
+// MongoDB collections
 var (
 	AnalyticsCollection  *mongo.Collection
 	CartCollection       *mongo.Collection
@@ -68,7 +63,7 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 // Set up all routes and middleware layers
-func setupRouter(rateLimiter *ratelim.RateLimiter) *httprouter.Router {
+func setupRouter(rateLimiter *ratelim.RateLimiter, hub *newchat.Hub) *httprouter.Router {
 	router := httprouter.New()
 	router.GET("/health", Index)
 
@@ -88,17 +83,19 @@ func setupRouter(rateLimiter *ratelim.RateLimiter) *httprouter.Router {
 	routes.AddStaticRoutes(router)
 	routes.AddSuggestionsRoutes(router)
 	routes.AddUtilityRoutes(router, rateLimiter)
+	routes.AddChatRoutes(router)
+	routes.AddNewChatRoutes(router, hub)
 
 	return router
 }
 
-// Middleware: Simple request logging
+// Simple request logging middleware
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
 		duration := time.Since(start)
-		log.Printf("%s %s from %s â€“ %v", r.Method, r.RequestURI, r.RemoteAddr, duration)
+		log.Printf("%s %s from %s – %v", r.Method, r.RequestURI, r.RemoteAddr, duration)
 	})
 }
 
@@ -122,23 +119,21 @@ func main() {
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(mongoURI).SetServerAPIOptions(serverAPI)
 
-	client, err := mongo.Connect(context.TODO(), opts)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		panic(err)
+		log.Fatalf("MongoDB connection error: %v", err)
 	}
 
-	Client = client // ✅ Assign to global variable
+	Client = client
 
-	defer func() {
-		if err := Client.Disconnect(context.TODO()); err != nil {
-			panic(err)
-		}
-	}()
-
-	if err := Client.Database("admin").RunCommand(context.TODO(), bson.D{{Key: "ping", Value: 1}}).Err(); err != nil {
-		panic(err)
+	if err := Client.Ping(ctx, nil); err != nil {
+		log.Fatalf("MongoDB ping failed: %v", err)
 	}
-	fmt.Println("Pinged your deployment. You successfully connected to MongoDB!")
+
+	fmt.Println("✅ Connected to MongoDB")
 
 	// Initialize all collections
 	db := Client.Database("eventdb")
@@ -162,20 +157,17 @@ func main() {
 	UserDataCollection = db.Collection("userdata")
 	UserCollection = db.Collection("users")
 
-	// initialize rate limiter
+	// Init rate limiter and chat hub
 	rateLimiter := ratelim.NewRateLimiter()
-
-	// initialize chat hub
 	hub := newchat.NewHub()
 	go hub.Run()
 
-	router := setupRouter(rateLimiter)
-	routes.AddChatRoutes(router)         // existing chat routes without hub
-	routes.AddNewChatRoutes(router, hub) // newchat routes that need hub
-	// apply middleware: CORS â†’ security headers â†’ logging â†’ router
+	// Setup router with all routes
+	router := setupRouter(rateLimiter, hub)
 
+	// Apply middleware
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"}, // lock down in production
+		AllowedOrigins:   []string{"https://farmium.netlify.app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -194,27 +186,31 @@ func main() {
 
 	server.RegisterOnShutdown(func() {
 		log.Println("🛑 Cleaning up resources before shutdown...")
-		// You may add cleanup tasks here if needed
 	})
 
 	go func() {
-		log.Println("Server started on port 10000") // ✅ Fixed log
+		log.Printf("🚀 Server started on port %s", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Could not listen on port 10000: %v", err)
+			log.Fatalf("❌ Could not listen on port %s: %v", port, err)
 		}
 	}()
 
+	// Graceful shutdown
 	shutdownChan := make(chan os.Signal, 1)
 	signal.Notify(shutdownChan, os.Interrupt, syscall.SIGTERM)
 	<-shutdownChan
 
 	log.Println("🛑 Shutdown signal received. Shutting down gracefully...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	ctxShutdown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelShutdown()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctxShutdown); err != nil {
 		log.Fatalf("❌ Server shutdown failed: %v", err)
+	}
+
+	if err := Client.Disconnect(ctxShutdown); err != nil {
+		log.Printf("⚠️ MongoDB disconnect error: %v", err)
 	}
 
 	log.Println("✅ Server stopped cleanly")

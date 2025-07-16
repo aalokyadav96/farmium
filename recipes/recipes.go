@@ -120,40 +120,110 @@ func GetRecipe(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 // Create
+func getSafe(arr []string, index int) string {
+	if index < len(arr) {
+		return arr[index]
+	}
+	return ""
+}
 func CreateRecipe(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
 
-	recipe := models.Recipe{
-		UserID:      r.FormValue("userId"),
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
-		PrepTime:    r.FormValue("prepTime"),
-		Tags:        splitCSV(r.FormValue("tags")),
-		Steps:       splitLines(r.FormValue("steps")),
-		CreatedAt:   time.Now().Unix(),
-		Views:       0,
+	userID := utils.GetUserIDFromRequest(r)
+	title := r.FormValue("title")
+	description := r.FormValue("description")
+	prepTime := r.FormValue("prepTime")
+	tags := splitCSV(r.FormValue("tags"))
+	steps := splitLines(r.FormValue("steps"))
+	difficulty := r.FormValue("difficulty")
+
+	var servings int
+	if val := r.FormValue("servings"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil {
+			servings = parsed
+		}
 	}
 
+	names := r.MultipartForm.Value["ingredientName[]"]
+	itemIDs := r.MultipartForm.Value["ingredientItemId[]"]
+	types := r.MultipartForm.Value["ingredientType[]"]
+	quantities := r.MultipartForm.Value["ingredientQuantity[]"]
+	units := r.MultipartForm.Value["ingredientUnit[]"]
+	rawAlts := r.MultipartForm.Value["ingredientAlternatives[]"]
+
+	var ingredients []models.Ingredient
+	for i := range names {
+		if i >= len(quantities) || i >= len(units) || names[i] == "" {
+			continue
+		}
+
+		qty, err := strconv.ParseFloat(quantities[i], 64)
+		if err != nil {
+			continue
+		}
+
+		ingredient := models.Ingredient{
+			Name:     names[i],
+			ItemID:   getSafe(itemIDs, i),
+			Type:     getSafe(types, i),
+			Quantity: qty,
+			Unit:     units[i],
+		}
+
+		if i < len(rawAlts) && rawAlts[i] != "" {
+			alts := strings.Split(rawAlts[i], ",")
+			for _, alt := range alts {
+				parts := strings.Split(alt, "|")
+				if len(parts) >= 3 {
+					ingredient.Alternatives = append(ingredient.Alternatives, models.IngredientAlternative{
+						Name:   parts[0],
+						ItemID: parts[1],
+						Type:   parts[2],
+					})
+				}
+			}
+		}
+
+		ingredients = append(ingredients, ingredient)
+	}
+
+	var imageURLs []string
 	uploadFolder := "./static/uploads"
-	files := r.MultipartForm.File["imageUrls"]
-	for _, fileHeader := range files {
-		file, err := fileHeader.Open()
-		if err != nil {
-			http.Error(w, "Error reading file", http.StatusInternalServerError)
-			return
-		}
-		defer file.Close()
+	if r.MultipartForm.File != nil {
+		files := r.MultipartForm.File["imageUrls"]
+		for _, fileHeader := range files {
+			file, err := fileHeader.Open()
+			if err != nil {
+				http.Error(w, "Error reading file", http.StatusInternalServerError)
+				return
+			}
+			defer file.Close()
 
-		savedName, err := utils.SaveFile(file, fileHeader, uploadFolder)
-		if err != nil {
-			http.Error(w, "Error saving file", http.StatusInternalServerError)
-			return
+			savedName, err := utils.SaveFile(file, fileHeader, uploadFolder)
+			if err != nil {
+				http.Error(w, "Error saving file", http.StatusInternalServerError)
+				return
+			}
+			imageURLs = append(imageURLs, savedName)
 		}
+	}
 
-		recipe.ImageURLs = append(recipe.ImageURLs, savedName)
+	recipe := models.Recipe{
+		UserID:      userID,
+		Title:       title,
+		Description: description,
+		PrepTime:    prepTime,
+		Tags:        tags,
+		ImageURLs:   imageURLs,
+		Ingredients: ingredients,
+		Steps:       steps,
+		Difficulty:  difficulty,
+		Servings:    servings,
+		CreatedAt:   time.Now().Unix(),
+		Views:       0,
 	}
 
 	result, err := db.RecipeCollection.InsertOne(context.TODO(), recipe)
@@ -161,8 +231,146 @@ func CreateRecipe(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Error(w, "DB insert failed", http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }
+
+// func CreateRecipe(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// 	// Parse multipart form (max 10MB)
+// 	if err := r.ParseMultipartForm(10 << 20); err != nil {
+// 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// Parse simple fields
+// 	userID := r.FormValue("userId")
+// 	title := r.FormValue("title")
+// 	description := r.FormValue("description")
+// 	prepTime := r.FormValue("prepTime")
+// 	tags := splitCSV(r.FormValue("tags"))
+// 	steps := splitLines(r.FormValue("steps"))
+
+// 	// Parse servings (optional int)
+// 	var servings int
+// 	if s := r.FormValue("servings"); s != "" {
+// 		if val, err := strconv.Atoi(s); err == nil {
+// 			servings = val
+// 		}
+// 	}
+
+// 	difficulty := r.FormValue("difficulty")
+
+// 	// Parse ingredients
+// 	names := r.MultipartForm.Value["ingredientName[]"]
+// 	quantities := r.MultipartForm.Value["ingredientQuantity[]"]
+// 	units := r.MultipartForm.Value["ingredientUnit[]"]
+
+// 	var ingredients []models.Ingredient
+// 	for i := range names {
+// 		if i < len(quantities) && i < len(units) {
+// 			qty, err := strconv.ParseFloat(quantities[i], 64)
+// 			if err != nil {
+// 				continue
+// 			}
+// 			ingredients = append(ingredients, models.Ingredient{
+// 				Name:     names[i],
+// 				Quantity: qty,
+// 				Unit:     units[i],
+// 			})
+// 		}
+// 	}
+
+// 	// Handle image uploads
+// 	var imageURLs []string
+// 	uploadFolder := "./static/uploads"
+// 	files := r.MultipartForm.File["imageUrls"]
+
+// 	for _, fileHeader := range files {
+// 		file, err := fileHeader.Open()
+// 		if err != nil {
+// 			http.Error(w, "Error reading file", http.StatusInternalServerError)
+// 			return
+// 		}
+// 		defer file.Close()
+
+// 		savedName, err := utils.SaveFile(file, fileHeader, uploadFolder)
+// 		if err != nil {
+// 			http.Error(w, "Error saving file", http.StatusInternalServerError)
+// 			return
+// 		}
+// 		imageURLs = append(imageURLs, savedName)
+// 	}
+
+// 	// Build Recipe object
+// 	recipe := models.Recipe{
+// 		UserID:      userID,
+// 		Title:       title,
+// 		Description: description,
+// 		PrepTime:    prepTime,
+// 		Tags:        tags,
+// 		ImageURLs:   imageURLs,
+// 		Ingredients: ingredients,
+// 		Steps:       steps,
+// 		CreatedAt:   time.Now().Unix(),
+// 		Views:       0,
+// 	}
+
+// 	// Save to DB
+// 	result, err := db.RecipeCollection.InsertOne(context.TODO(), recipe)
+// 	if err != nil {
+// 		http.Error(w, "DB insert failed", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	// Return the inserted ID
+// 	w.Header().Set("Content-Type", "application/json")
+// 	json.NewEncoder(w).Encode(result)
+// }
+
+// // func CreateRecipe(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+// // 	if err := r.ParseMultipartForm(10 << 20); err != nil {
+// // 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+// // 		return
+// // 	}
+
+// // 	recipe := models.Recipe{
+// // 		UserID:      r.FormValue("userId"),
+// // 		Title:       r.FormValue("title"),
+// // 		Description: r.FormValue("description"),
+// // 		PrepTime:    r.FormValue("prepTime"),
+// // 		Tags:        splitCSV(r.FormValue("tags")),
+// // 		Steps:       splitLines(r.FormValue("steps")),
+// // 		CreatedAt:   time.Now().Unix(),
+// // 		Views:       0,
+// // 	}
+
+// // 	uploadFolder := "./static/uploads"
+// // 	files := r.MultipartForm.File["imageUrls"]
+// // 	for _, fileHeader := range files {
+// // 		file, err := fileHeader.Open()
+// // 		if err != nil {
+// // 			http.Error(w, "Error reading file", http.StatusInternalServerError)
+// // 			return
+// // 		}
+// // 		defer file.Close()
+
+// // 		savedName, err := utils.SaveFile(file, fileHeader, uploadFolder)
+// // 		if err != nil {
+// // 			http.Error(w, "Error saving file", http.StatusInternalServerError)
+// // 			return
+// // 		}
+
+// // 		recipe.ImageURLs = append(recipe.ImageURLs, savedName)
+// // 	}
+
+// // 	result, err := db.RecipeCollection.InsertOne(context.TODO(), recipe)
+// // 	if err != nil {
+// // 		http.Error(w, "DB insert failed", http.StatusInternalServerError)
+// // 		return
+// // 	}
+// // 	json.NewEncoder(w).Encode(result)
+// // }
 
 // Update
 func UpdateRecipe(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
